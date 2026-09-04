@@ -1,0 +1,39 @@
+# DocuForge AI — development overrides (Phase 1)
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Relative bind mounts for Windows + Docker Desktop compatibility.
+# No absolute host paths.
+
+services:
+  backend:
+    environment:
+      APP_ENV: development
+      SPRING_PROFILES_ACTIVE: dev
+    volumes:
+      - ./storage:/storage
+      # Hot-reload bind mounts will be added when the Spring Boot project exists (Phase 2+)
+
+  frontend:
+    # Dev server / HMR wiring arrives with the Vite project.
+    environment:
+      NODE_ENV: development
+
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+
+  mailpit:
+    ports:
+      - "${MAILPIT_UI_PORT:-8028}:8025"
+      - "${MAILPIT_SMTP_PORT:-1028}:1025"
+
+  ollama:
+    ports:
+      - "${OLLAMA_PORT:-11435}:11434"
+
+  libreoffice:
+    # Optional host publish for local debugging of health/UNO (dev only)
+    ports:
+      - "${LIBREOFFICE_HEALTH_HOST_PORT:-8081}:${LIBREOFFICE_HEALTH_PORT:-8081}"
+      - "${LIBREOFFICE_UNO_HOST_PORT:-2002}:${LIBREOFFICE_UNO_PORT:-2002}"

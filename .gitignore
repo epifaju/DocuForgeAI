@@ -1,0 +1,112 @@
+# =============================================================================
+# DocuForge AI — .gitignore
+# Never commit secrets, build artifacts, or local data.
+# =============================================================================
+
+# --- Secrets & environment ---------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa
+id_rsa.*
+credentials.json
+secrets.json
+**/config/env.secrets
+**/env.secrets
+
+# --- OS ----------------------------------------------------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+ehthumbs.db
+
+# --- IDE / editors -----------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# --- Backend (Java / Maven) --------------------------------------------------
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/**/*.class
+backend/**/*.jar
+!backend/**/maven-wrapper.jar
+backend/**/*.war
+backend/**/*.log
+backend/hs_err_pid*
+backend/storage/
+backend/target/test-storage*/
+
+# --- Frontend (Node / Vite) --------------------------------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+frontend/*.tsbuildinfo
+
+# --- E2E / Node (any package) ------------------------------------------------
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Storage (runtime files; keep empty dirs) --------------------------------
+storage/templates/**
+!storage/templates/.gitkeep
+storage/generated/**
+!storage/generated/.gitkeep
+storage/temporary/**
+!storage/temporary/.gitkeep
+storage/*.pre-restore-*
+
+# --- Backups (may contain DB dumps + .env secrets) ---------------------------
+backups/
+*.sql.gz
+*.dump
+
+# --- Logs & temp -------------------------------------------------------------
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+phase*-mvn.log
+
+# --- Test / coverage / Playwright --------------------------------------------
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/fixtures/e2e-template.docx
+
+# --- Docker ------------------------------------------------------------------
+*.pid
+docker-compose.override.yml
+
+# --- Cursor / local agent ----------------------------------------------------
+.cursor/
+!.cursor/rules/

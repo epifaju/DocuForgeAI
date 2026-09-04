@@ -1,0 +1,3 @@
+client.firstName,client.lastName,client.email,invoice.number,invoice.date,invoice.total
+Alice,Martin,alice.martin@example.com,F-2026-001,2026-09-01,120.50
+Bob,Dupont,bob.dupont@example.com,F-2026-002,2026-09-02,89.00

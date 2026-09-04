@@ -1,0 +1,19 @@
+{
+  "name": "docuforge-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "fixtures": "node fixtures/generate-docx.mjs",
+    "test": "npm run fixtures && playwright test",
+    "test:ui": "npm run fixtures && playwright test --ui",
+    "test:headed": "npm run fixtures && playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.13.10",
+    "jszip": "^3.10.1",
+    "typescript": "~5.8.2"
+  }
+}

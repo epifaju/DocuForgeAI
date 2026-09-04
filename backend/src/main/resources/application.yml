@@ -1,0 +1,134 @@
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  application:
+    name: docuforge-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/docuforge}
+    username: ${SPRING_DATASOURCE_USERNAME:docuforge}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme_postgres_dev_only}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: ${DEFAULT_TIMEZONE:Europe/Paris}
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_SIZE_MB:25}MB
+      max-request-size: ${MAX_UPLOAD_SIZE_MB:25}MB
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1028}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: ${SMTP_TIMEOUT_MS:10000}
+      mail.smtp.timeout: ${SMTP_TIMEOUT_MS:10000}
+      mail.smtp.writetimeout: ${SMTP_TIMEOUT_MS:10000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+docuforge:
+  app-env: ${APP_ENV:development}
+  app-base-url: ${APP_BASE_URL:http://localhost:5174}
+  timezone: ${DEFAULT_TIMEZONE:Europe/Paris}
+  storage:
+    root: ${STORAGE_ROOT:./storage}
+    max-upload-size-mb: ${MAX_UPLOAD_SIZE_MB:25}
+    allowed-extensions:
+      - docx
+      - pdf
+      - csv
+      - zip
+    allowed-content-types:
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - application/pdf
+      - text/csv
+      - text/plain
+      - application/csv
+      - application/zip
+      - application/x-zip-compressed
+  jwt:
+    secret: ${JWT_SECRET:changeme_generate_a_long_random_secret_at_least_32_chars}
+    access-expiration-seconds: ${JWT_ACCESS_EXPIRATION:900}
+    refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION:604800}
+  bootstrap:
+    enabled: ${DOCUFORGE_BOOTSTRAP_ENABLED:true}
+    company-name: ${DOCUFORGE_BOOTSTRAP_COMPANY_NAME:DocuForge Demo}
+    company-identifier: ${DOCUFORGE_BOOTSTRAP_COMPANY_IDENTIFIER:demo}
+    admin-email: ${DOCUFORGE_BOOTSTRAP_ADMIN_EMAIL:admin@demo.local}
+    admin-password: ${DOCUFORGE_BOOTSTRAP_ADMIN_PASSWORD:changeme_admin_dev_only}
+    admin-first-name: ${DOCUFORGE_BOOTSTRAP_ADMIN_FIRST_NAME:Admin}
+    admin-last-name: ${DOCUFORGE_BOOTSTRAP_ADMIN_LAST_NAME:Demo}
+  pdf:
+    enabled: ${PDF_CONVERSION_ENABLED:true}
+    timeout-seconds: ${PDF_CONVERSION_TIMEOUT:60}
+    libreoffice-host: ${LIBREOFFICE_UNO_HOST:127.0.0.1}
+    libreoffice-port: ${LIBREOFFICE_UNO_PORT:2002}
+    max-retries: ${PDF_CONVERSION_MAX_RETRIES:1}
+  ai:
+    enabled: ${AI_ENABLED:false}
+    provider: ${AI_PROVIDER:ollama}
+    ollama-base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+    ollama-model: ${OLLAMA_MODEL:llama3.2}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:60}
+    max-retries: ${AI_MAX_RETRIES:1}
+  batch:
+    max-rows: ${BATCH_MAX_ROWS:500}
+    sync: ${BATCH_SYNC:false}
+  mail:
+    enabled: ${SMTP_ENABLED:true}
+    from: ${SMTP_FROM:noreply@docuforge.local}
+    max-attachment-bytes: ${SMTP_MAX_ATTACHMENT_BYTES:26214400}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    login-per-minute: ${RATE_LIMIT_LOGIN_PER_MINUTE:10}
+    ai-per-minute: ${RATE_LIMIT_AI_PER_MINUTE:20}
+  antivirus:
+    enabled: ${ANTIVIRUS_ENABLED:false}
+    host: ${CLAMAV_HOST:127.0.0.1}
+    port: ${CLAMAV_PORT:3310}
+    timeout-ms: ${CLAMAV_TIMEOUT_MS:10000}
+
+logging:
+  level:
+    root: INFO
+    ai.docuforge: INFO

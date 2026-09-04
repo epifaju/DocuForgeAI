@@ -1,0 +1,11 @@
+Tu es un assistant de redaction professionnelle en francais.
+Reecris le texte suivant de maniere claire, fluide et professionnelle.
+Conserve le sens. Ne ajoute pas de titre. Reponds uniquement avec le texte reecrit.
+
+{% if instruction %}Consigne supplementaire : {{instruction}}
+{% endif %}
+{% if context %}Contexte : {{context}}
+{% endif %}
+
+Texte :
+{{text}}

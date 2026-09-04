@@ -1,0 +1,266 @@
+# DocuForge AI — Compose (MVP / Phase 21)
+# Services: postgres, backend, frontend, ollama, libreoffice, mailpit (PRD §13)
+# Optional services use Compose profiles (antivirus, cache, object-storage, automation, proxy).
+
+name: docuforge-ai
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    container_name: docuforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docuforge}
+      POSTGRES_USER: ${POSTGRES_USER:-docuforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_postgres_dev_only}
+      TZ: ${DEFAULT_TIMEZONE:-Europe/Paris}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - docuforge
+
+  mailpit:
+    image: axllent/mailpit:v1.22.3
+    container_name: docuforge-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-8028}:8025"
+      - "${MAILPIT_SMTP_PORT:-1028}:1025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - docuforge
+
+  ollama:
+    image: ollama/ollama:0.6.5
+    container_name: docuforge-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11435}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    networks:
+      - docuforge
+
+  libreoffice:
+    build:
+      context: ./infrastructure/libreoffice
+      dockerfile: Dockerfile
+    image: docuforge-ai-libreoffice:0.1.0
+    container_name: docuforge-libreoffice
+    restart: unless-stopped
+    environment:
+      LIBREOFFICE_UNO_HOST: 0.0.0.0
+      LIBREOFFICE_UNO_PORT: ${LIBREOFFICE_UNO_PORT:-2002}
+      LIBREOFFICE_HEALTH_PORT: ${LIBREOFFICE_HEALTH_PORT:-8081}
+      TZ: ${DEFAULT_TIMEZONE:-Europe/Paris}
+    expose:
+      - "${LIBREOFFICE_UNO_PORT:-2002}"
+      - "${LIBREOFFICE_HEALTH_PORT:-8081}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$${LIBREOFFICE_HEALTH_PORT:-8081}/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 90s
+    networks:
+      - docuforge
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: docuforge-ai-backend:0.1.0
+    container_name: docuforge-backend
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5174}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-docuforge}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-docuforge}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-changeme_postgres_dev_only}
+      JWT_SECRET: ${JWT_SECRET:-changeme_generate_a_long_random_secret_at_least_32_chars}
+      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-900}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800}
+      STORAGE_ROOT: ${STORAGE_ROOT:-/storage}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-25}
+      PDF_CONVERSION_ENABLED: ${PDF_CONVERSION_ENABLED:-true}
+      LIBREOFFICE_URL: ${LIBREOFFICE_URL:-http://libreoffice:8081}
+      LIBREOFFICE_UNO_HOST: libreoffice
+      LIBREOFFICE_UNO_PORT: ${LIBREOFFICE_UNO_PORT:-2002}
+      PDF_CONVERSION_TIMEOUT: ${PDF_CONVERSION_TIMEOUT:-60}
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-60}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@docuforge.local}
+      BATCH_MAX_ROWS: ${BATCH_MAX_ROWS:-500}
+      ANTIVIRUS_ENABLED: ${ANTIVIRUS_ENABLED:-false}
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      RATE_LIMIT_LOGIN_PER_MINUTE: ${RATE_LIMIT_LOGIN_PER_MINUTE:-10}
+      RATE_LIMIT_AI_PER_MINUTE: ${RATE_LIMIT_AI_PER_MINUTE:-20}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Europe/Paris}
+      TZ: ${DEFAULT_TIMEZONE:-Europe/Paris}
+    ports:
+      - "${BACKEND_PORT:-18081}:8080"
+    volumes:
+      - ./storage:/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    # Ollama intentionally omitted: AI outage must not block core app (PRD ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§74, ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§87)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+      libreoffice:
+        condition: service_healthy
+    networks:
+      - docuforge
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: docuforge-ai-frontend:0.1.0
+    container_name: docuforge-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5174}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - docuforge
+
+  # --- Optional (profiles) ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â PRD ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§13 ---
+
+  clamav:
+    profiles: ["antivirus"]
+    image: clamav/clamav:1.4.2
+    container_name: docuforge-clamav
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 3 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - docuforge
+
+  redis:
+    profiles: ["cache"]
+    image: redis:7.4.2-alpine
+    container_name: docuforge-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - docuforge
+
+  minio:
+    profiles: ["object-storage"]
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    container_name: docuforge-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-docuforge_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme_minio_dev_only}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - docuforge
+
+  n8n:
+    profiles: ["automation"]
+    image: n8nio/n8n:1.81.4
+    container_name: docuforge-n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - docuforge
+
+  traefik:
+    profiles: ["proxy"]
+    image: traefik:v3.3.3
+    container_name: docuforge-traefik
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--ping=true"
+    ports:
+      - "${TRAEFIK_HTTP_PORT:-80}:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - docuforge
+
+volumes:
+  postgres_data:
+  ollama_data:
+  redis_data:
+  minio_data:
+  n8n_data:
+
+networks:
+  docuforge:
+    name: docuforge-network
+    driver: bridge

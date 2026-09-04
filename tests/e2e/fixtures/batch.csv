@@ -1,0 +1,3 @@
+client.firstName,client.email,invoice.total
+Alice,alice.e2e@example.com,10.5
+Bob,bob.e2e@example.com,20

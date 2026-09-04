@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { downloadBatchZip, getBatch, getBatchErrors } from "@/api/batches";
 import { useAuth } from "@/auth/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 
 export function BatchDetailPage() {
+  const { t } = useTranslation();
   const { id = "" } = useParams();
   const { token } = useAuth();
 
@@ -29,58 +31,60 @@ export function BatchDetailPage() {
   const data = job.data;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <AppHeader subtitle="Detail d'un job batch." />
-      <p className="mb-4 text-sm">
-        <Link to="/batches" className="text-[var(--brand)] underline">
-          ← Batches
+    <AppShell
+      title={t("batchDetail.title")}
+      description={t("batchDetail.description")}
+      width="narrow"
+      actions={
+        <Link to="/batches" className="text-sm text-[var(--brand)] underline">
+          {t("batchDetail.back")}
         </Link>
-      </p>
-
-      {job.isLoading ? <p>Chargement…</p> : null}
-      {job.isError ? <p className="text-[var(--danger)]">Batch introuvable.</p> : null}
+      }
+    >
+      {job.isLoading ? <p>{t("common.loading")}</p> : null}
+      {job.isError ? <p className="text-[var(--danger)]">{t("batchDetail.notFound")}</p> : null}
 
       {data ? (
         <div className="space-y-5">
           <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
             <p className="font-mono text-xs text-[var(--muted)]">{data.id}</p>
-            <h1 className="mt-1 text-2xl text-[var(--brand-ink)]">{data.status}</h1>
+            <h2 className="mt-1 text-2xl text-[var(--brand-ink)]">{data.status}</h2>
             <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-[var(--muted)]">Total</dt>
+                <dt className="text-[var(--muted)]">{t("batchDetail.total")}</dt>
                 <dd>{data.totalItems}</dd>
               </div>
               <div>
-                <dt className="text-[var(--muted)]">Traites</dt>
+                <dt className="text-[var(--muted)]">{t("batchDetail.processed")}</dt>
                 <dd>{data.processedItems}</dd>
               </div>
               <div>
-                <dt className="text-[var(--muted)]">Succes</dt>
+                <dt className="text-[var(--muted)]">{t("batchDetail.success")}</dt>
                 <dd>{data.successfulItems}</dd>
               </div>
               <div>
-                <dt className="text-[var(--muted)]">Echecs</dt>
+                <dt className="text-[var(--muted)]">{t("batchDetail.failed")}</dt>
                 <dd>{data.failedItems}</dd>
               </div>
             </dl>
             {data.zipReady ? (
               <button
                 type="button"
-                className="mt-4 rounded-xl bg-[var(--brand)] px-4 py-2 text-sm text-white"
+                className="mt-4 rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white"
                 onClick={() => void downloadBatchZip(token!, data.id)}
               >
-                Telecharger ZIP
+                {t("batchDetail.downloadZip")}
               </button>
             ) : null}
           </section>
 
           {data.errorsReady ? (
             <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
-              <h2 className="text-lg text-[var(--brand-ink)]">Erreurs</h2>
+              <h2 className="text-lg text-[var(--brand-ink)]">{t("batchDetail.errors")}</h2>
               <ul className="mt-3 space-y-2 text-sm">
                 {(errors.data ?? []).map((err) => (
                   <li key={err.rowNumber}>
-                    Ligne {err.rowNumber}: {err.message}
+                    {t("batchDetail.rowError", { row: err.rowNumber, message: err.message })}
                   </li>
                 ))}
               </ul>
@@ -88,6 +92,6 @@ export function BatchDetailPage() {
           ) : null}
         </div>
       ) : null}
-    </div>
+    </AppShell>
   );
 }

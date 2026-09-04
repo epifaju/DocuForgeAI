@@ -1,4 +1,5 @@
 import type { ApiResponse, ErrorResponse } from "./types";
+import i18n from "@/i18n";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -15,14 +16,27 @@ export class ApiError extends Error {
   }
 }
 
+export function acceptLanguage(): string {
+  return i18n.language?.toLowerCase().startsWith("pt") ? "pt" : "fr";
+}
+
 function authHeaders(token?: string | null): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "Accept-Language": acceptLanguage(),
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
   return headers;
+}
+
+/** Auth + Accept-Language for multipart / binary fetches (no Content-Type). */
+export function bearerHeaders(token: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    "Accept-Language": acceptLanguage(),
+  };
 }
 
 export async function apiJson<T>(

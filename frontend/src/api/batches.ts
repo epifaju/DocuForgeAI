@@ -1,4 +1,4 @@
-import { apiJson } from "./client";
+import { apiJson, bearerHeaders } from "./client";
 import type { PageResponse } from "./types";
 
 export interface BatchJob {
@@ -49,7 +49,7 @@ export async function createBatch(
   }
   const response = await fetch("/api/v1/batches", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: bearerHeaders(token),
     body: form,
   });
   const json = await response.json();
@@ -61,7 +61,7 @@ export async function createBatch(
 
 export async function downloadBatchZip(token: string, id: string) {
   const response = await fetch(`/api/v1/batches/${id}/download`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: bearerHeaders(token),
   });
   if (!response.ok) throw new Error("ZIP indisponible");
   const blob = await response.blob();

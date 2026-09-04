@@ -21,7 +21,7 @@ test.describe("Templates, form, generation (§101.4–10,13)", () => {
     await page.getByLabel(FIELD.email, { exact: false }).fill("alice.e2e@example.com");
     await page.getByLabel(FIELD.total, { exact: false }).fill("42");
     await page.getByRole("button", { name: "Generer le document" }).click();
-    await expect(page.getByText(/Champ obligatoire|obligatoire|invalide/i).first()).toBeVisible();
+    await expect(page.getByText(/Champ obligatoire|Campo obrigatorio|obligatoire|invalide/i).first()).toBeVisible();
 
     // Valid generation
     await page.getByLabel(FIELD.firstName, { exact: false }).fill("Alice");

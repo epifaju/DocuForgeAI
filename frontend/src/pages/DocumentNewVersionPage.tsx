@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { getDocument } from "@/api/documents";
 import { getFormSchema } from "@/api/forms";
 import { useAuth } from "@/auth/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { DynamicForm } from "@/components/DynamicForm";
 
 export function DocumentNewVersionPage() {
+  const { t } = useTranslation();
   const { id = "" } = useParams();
   const { token } = useAuth();
 
@@ -23,17 +25,19 @@ export function DocumentNewVersionPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <AppHeader subtitle="Nouvelle version — le document d'origine reste inchange." />
-      <p className="mb-4 text-sm">
-        <Link to={`/documents/${id}`} className="text-[var(--brand)] underline">
-          ← Retour au document
+    <AppShell
+      title={t("newVersion.title")}
+      description={t("newVersion.description")}
+      width="form"
+      actions={
+        <Link to={`/documents/${id}`} className="text-sm text-[var(--brand)] underline">
+          {t("newVersion.back")}
         </Link>
-      </p>
-
-      {docQuery.isLoading || schemaQuery.isLoading ? <p>Chargement…</p> : null}
+      }
+    >
+      {docQuery.isLoading || schemaQuery.isLoading ? <p>{t("common.loading")}</p> : null}
       {docQuery.isError || schemaQuery.isError ? (
-        <p className="text-[var(--danger)]">Impossible de preparer la nouvelle version.</p>
+        <p className="text-[var(--danger)]">{t("newVersion.prepareError")}</p>
       ) : null}
 
       {docQuery.data && schemaQuery.data ? (
@@ -42,9 +46,9 @@ export function DocumentNewVersionPage() {
           initialValues={docQuery.data.data ?? undefined}
           mode="new-version"
           sourceDocumentId={docQuery.data.id}
-          submitLabel="Creer la version"
+          submitLabel={t("newVersion.submit")}
         />
       ) : null}
-    </div>
+    </AppShell>
   );
 }

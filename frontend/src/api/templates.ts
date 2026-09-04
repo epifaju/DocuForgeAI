@@ -1,4 +1,4 @@
-import { apiJson } from "./client";
+import { apiJson, bearerHeaders } from "./client";
 import type { PageResponse, TemplateSummary } from "./types";
 
 export type { TemplateSummary };
@@ -33,7 +33,7 @@ export async function uploadTemplateVersion(
     `/api/v1/templates/${templateId}/versions?setAsCurrent=${setAsCurrent}`,
     {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: bearerHeaders(token),
       body: form,
     },
   );
@@ -58,6 +58,14 @@ export function archiveTemplate(token: string, templateId: string) {
   });
 }
 
-export function listTemplatesPage(token: string, size = 50) {
-  return apiJson<PageResponse<TemplateSummary>>(`/api/v1/templates?size=${size}`, { token });
+export function listTemplatesPage(
+  token: string,
+  opts: { page?: number; size?: number } = {},
+) {
+  const page = opts.page ?? 0;
+  const size = opts.size ?? 50;
+  return apiJson<PageResponse<TemplateSummary>>(
+    `/api/v1/templates?page=${page}&size=${size}`,
+    { token },
+  );
 }

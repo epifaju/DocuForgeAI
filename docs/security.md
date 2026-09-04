@@ -32,6 +32,12 @@ Réponse `429` / code `RATE_LIMITED`.
 
 Toutes les lectures/écritures métier filtrent par `company_id` du JWT. Un accès cross-company renvoie `404`.
 
+## Messages d'erreur (i18n)
+
+- Locales : `fr` (défaut), `pt`
+- Header `Accept-Language` (envoyé par le frontend selon le sélecteur)
+- Fichiers : `backend/src/main/resources/i18n/messages_*.properties`
+
 ## Logs (§75)
 
 - JSON structuré (Logback + logstash-encoder).

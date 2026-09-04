@@ -4,6 +4,7 @@ import ai.docuforge.audit.AuditActions;
 import ai.docuforge.audit.AuditService;
 import ai.docuforge.auth.security.DocuForgePrincipal;
 import ai.docuforge.common.api.ErrorResponse.FieldErrorDetail;
+import ai.docuforge.common.i18n.ErrorMessages;
 import ai.docuforge.domain.batch.BatchItem;
 import ai.docuforge.domain.batch.BatchItemRepository;
 import ai.docuforge.domain.batch.BatchItemStatus;
@@ -55,6 +56,7 @@ public class BatchProcessingService {
     private final FormDataValidator formDataValidator;
     private final DocumentGenerationService documentGenerationService;
     private final AuditService auditService;
+    private final ErrorMessages errorMessages;
     private final ObjectMapper objectMapper;
     private final ai.docuforge.config.BatchProperties batchProperties;
     private final TransactionTemplate transactionTemplate;
@@ -69,6 +71,7 @@ public class BatchProcessingService {
             FormDataValidator formDataValidator,
             DocumentGenerationService documentGenerationService,
             AuditService auditService,
+            ErrorMessages errorMessages,
             ObjectMapper objectMapper,
             ai.docuforge.config.BatchProperties batchProperties,
             PlatformTransactionManager transactionManager
@@ -82,6 +85,7 @@ public class BatchProcessingService {
         this.formDataValidator = formDataValidator;
         this.documentGenerationService = documentGenerationService;
         this.auditService = auditService;
+        this.errorMessages = errorMessages;
         this.objectMapper = objectMapper;
         this.batchProperties = batchProperties;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -163,9 +167,9 @@ public class BatchProcessingService {
                 List<FieldErrorDetail> errors = formDataValidator.validateCollecting(variables, data);
                 if (!errors.isEmpty()) {
                     String message = errors.stream()
-                            .map(e -> e.field() + ": " + e.message())
+                            .map(e -> e.field() + ": " + errorMessages.localize(e.message()))
                             .reduce((a, b) -> a + "; " + b)
-                            .orElse("Validation echouee");
+                            .orElse(errorMessages.localize("error.form.invalid"));
                     saveFailedItem(job, row.rowNumber(), message);
                     failed++;
                 } else {

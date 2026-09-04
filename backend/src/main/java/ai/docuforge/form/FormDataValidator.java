@@ -2,7 +2,6 @@ package ai.docuforge.form;
 
 import ai.docuforge.common.api.ErrorResponse.FieldErrorDetail;
 import ai.docuforge.domain.template.TemplateVariable;
-import ai.docuforge.domain.template.VariableType;
 import ai.docuforge.form.dto.FormFieldConstraints;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Backend validation of dynamic form payloads (PRD §24 / §85).
+ * Field messages are {@code error.form.*} keys (optional {@code |arg} suffix) resolved by {@link ai.docuforge.common.i18n.ErrorMessages}.
  */
 @Component
 public class FormDataValidator {
@@ -34,7 +34,7 @@ public class FormDataValidator {
     public void validateOrThrow(List<TemplateVariable> variables, Map<String, Object> data) {
         List<FieldErrorDetail> errors = validateCollecting(variables, data);
         if (!errors.isEmpty()) {
-            throw new FormValidationException("Les donnees du formulaire sont invalides.", errors);
+            throw new FormValidationException("error.form.invalid", errors);
         }
     }
 
@@ -51,7 +51,7 @@ public class FormDataValidator {
         for (String unknown : safeData.keySet()) {
             boolean known = variables.stream().anyMatch(v -> v.getVariableKey().equals(unknown));
             if (!known) {
-                errors.add(new FieldErrorDetail(unknown, "Champ non declare dans le schema."));
+                errors.add(new FieldErrorDetail(unknown, "error.form.unknown_field"));
             }
         }
         return errors;
@@ -66,7 +66,7 @@ public class FormDataValidator {
         String key = variable.getVariableKey();
         boolean blank = isBlank(raw);
         if (variable.isRequired() && blank) {
-            errors.add(new FieldErrorDetail(key, "Champ obligatoire."));
+            errors.add(new FieldErrorDetail(key, "error.form.required"));
             return;
         }
         if (blank) {
@@ -79,12 +79,12 @@ public class FormDataValidator {
                 String value = stringValue(raw);
                 validateText(key, value, constraints, errors);
                 if (!EMAIL.matcher(value).matches()) {
-                    errors.add(new FieldErrorDetail(key, "Email invalide."));
+                    errors.add(new FieldErrorDetail(key, "error.form.email"));
                 }
             }
             case PHONE -> {
                 if (!PHONE.matcher(stringValue(raw)).matches()) {
-                    errors.add(new FieldErrorDetail(key, "Telephone invalide."));
+                    errors.add(new FieldErrorDetail(key, "error.form.phone"));
                 }
             }
             case NUMBER -> validateInteger(key, raw, constraints, errors);
@@ -96,17 +96,17 @@ public class FormDataValidator {
                 if (!(raw instanceof Boolean)
                         && !"true".equalsIgnoreCase(stringValue(raw))
                         && !"false".equalsIgnoreCase(stringValue(raw))) {
-                    errors.add(new FieldErrorDetail(key, "Booleen invalide."));
+                    errors.add(new FieldErrorDetail(key, "error.form.boolean"));
                 }
             }
             case SELECT -> {
                 String value = stringValue(raw);
                 if (!constraints.options().isEmpty() && !constraints.options().contains(value)) {
-                    errors.add(new FieldErrorDetail(key, "Valeur non autorisee."));
+                    errors.add(new FieldErrorDetail(key, "error.form.not_allowed"));
                 }
             }
             case MULTISELECT -> validateMultiSelect(key, raw, constraints, errors);
-            default -> errors.add(new FieldErrorDetail(key, "Type de champ non supporté."));
+            default -> errors.add(new FieldErrorDetail(key, "error.form.unsupported_type"));
         }
     }
 
@@ -117,18 +117,18 @@ public class FormDataValidator {
             List<FieldErrorDetail> errors
     ) {
         if (constraints.minLength() != null && value.length() < constraints.minLength()) {
-            errors.add(new FieldErrorDetail(key, "Longueur minimale: " + constraints.minLength()));
+            errors.add(new FieldErrorDetail(key, "error.form.min_length|" + constraints.minLength()));
         }
         if (constraints.maxLength() != null && value.length() > constraints.maxLength()) {
-            errors.add(new FieldErrorDetail(key, "Longueur maximale: " + constraints.maxLength()));
+            errors.add(new FieldErrorDetail(key, "error.form.max_length|" + constraints.maxLength()));
         }
         if (constraints.pattern() != null && !constraints.pattern().isBlank()) {
             try {
                 if (!Pattern.compile(constraints.pattern()).matcher(value).matches()) {
-                    errors.add(new FieldErrorDetail(key, "Format invalide."));
+                    errors.add(new FieldErrorDetail(key, "error.form.format"));
                 }
             } catch (Exception ex) {
-                errors.add(new FieldErrorDetail(key, "Pattern de validation invalide."));
+                errors.add(new FieldErrorDetail(key, "error.form.pattern_invalid"));
             }
         }
     }
@@ -143,11 +143,11 @@ public class FormDataValidator {
         try {
             number = toDecimal(raw);
         } catch (NumberFormatException ex) {
-            errors.add(new FieldErrorDetail(key, "Nombre invalide."));
+            errors.add(new FieldErrorDetail(key, "error.form.number"));
             return;
         }
         if (number.stripTrailingZeros().scale() > 0) {
-            errors.add(new FieldErrorDetail(key, "Nombre entier requis."));
+            errors.add(new FieldErrorDetail(key, "error.form.integer"));
             return;
         }
         applyMinMax(key, number, constraints, errors);
@@ -164,7 +164,7 @@ public class FormDataValidator {
         try {
             number = toDecimal(raw);
         } catch (NumberFormatException ex) {
-            errors.add(new FieldErrorDetail(key, currency ? "Montant invalide." : "Nombre invalide."));
+            errors.add(new FieldErrorDetail(key, currency ? "error.form.amount" : "error.form.number"));
             return;
         }
         BigDecimal min = constraints.min();
@@ -172,10 +172,13 @@ public class FormDataValidator {
             min = BigDecimal.ZERO;
         }
         if (min != null && number.compareTo(min) < 0) {
-            errors.add(new FieldErrorDetail(key, currency ? "Montant doit etre >= " + min : "Valeur minimale: " + min));
+            errors.add(new FieldErrorDetail(
+                    key,
+                    currency ? "error.form.amount_min|" + min : "error.form.min|" + min
+            ));
         }
         if (constraints.max() != null && number.compareTo(constraints.max()) > 0) {
-            errors.add(new FieldErrorDetail(key, "Valeur maximale: " + constraints.max()));
+            errors.add(new FieldErrorDetail(key, "error.form.max|" + constraints.max()));
         }
     }
 
@@ -186,10 +189,10 @@ public class FormDataValidator {
             List<FieldErrorDetail> errors
     ) {
         if (constraints.min() != null && number.compareTo(constraints.min()) < 0) {
-            errors.add(new FieldErrorDetail(key, "Valeur minimale: " + constraints.min()));
+            errors.add(new FieldErrorDetail(key, "error.form.min|" + constraints.min()));
         }
         if (constraints.max() != null && number.compareTo(constraints.max()) > 0) {
-            errors.add(new FieldErrorDetail(key, "Valeur maximale: " + constraints.max()));
+            errors.add(new FieldErrorDetail(key, "error.form.max|" + constraints.max()));
         }
     }
 
@@ -197,7 +200,7 @@ public class FormDataValidator {
         try {
             LocalDate.parse(value);
         } catch (DateTimeParseException ex) {
-            errors.add(new FieldErrorDetail(key, "Date ISO invalide (yyyy-MM-dd)."));
+            errors.add(new FieldErrorDetail(key, "error.form.date"));
         }
     }
 
@@ -208,7 +211,7 @@ public class FormDataValidator {
             try {
                 LocalDateTime.parse(value);
             } catch (DateTimeParseException ex) {
-                errors.add(new FieldErrorDetail(key, "Date-heure ISO invalide."));
+                errors.add(new FieldErrorDetail(key, "error.form.datetime"));
             }
         }
     }
@@ -221,13 +224,13 @@ public class FormDataValidator {
     ) {
         List<String> values = toStringList(raw);
         if (values.isEmpty()) {
-            errors.add(new FieldErrorDetail(key, "Selection multiple invalide."));
+            errors.add(new FieldErrorDetail(key, "error.form.multiselect"));
             return;
         }
         if (!constraints.options().isEmpty()) {
             for (String value : values) {
                 if (!constraints.options().contains(value)) {
-                    errors.add(new FieldErrorDetail(key, "Valeur non autorisee: " + value));
+                    errors.add(new FieldErrorDetail(key, "error.form.not_allowed_value|" + value));
                     return;
                 }
             }

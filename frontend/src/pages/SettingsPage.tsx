@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { getSettings, updateSettings } from "@/api/settings";
 import { useAuth } from "@/auth/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { isBlank } from "@/lib/formValidation";
 
 type Section = "company" | "ai" | "email" | "users";
 
@@ -15,6 +17,7 @@ function sectionFromPath(pathname: string): Section {
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const { token, isAdmin } = useAuth();
   const location = useLocation();
   const section = sectionFromPath(location.pathname);
@@ -23,6 +26,7 @@ export function SettingsPage() {
   const [companyAi, setCompanyAi] = useState(true);
   const [fromAddress, setFromAddress] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["admin-settings"],
@@ -45,7 +49,7 @@ export function SettingsPage() {
         email: { fromAddress: fromAddress.trim() },
       }),
     onSuccess: () => {
-      setMessage("Parametres enregistres.");
+      setMessage(t("settings.saved"));
       void queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
     },
     onError: (err: Error) => setMessage(err.message),
@@ -61,6 +65,11 @@ export function SettingsPage() {
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (section === "company" && isBlank(name)) {
+      setNameError(t("validation.required"));
+      return;
+    }
+    setNameError(null);
     setMessage(null);
     save.mutate();
   }
@@ -68,25 +77,27 @@ export function SettingsPage() {
   const data = query.data;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <AppHeader subtitle="Parametres de la societe (ADMIN)." />
-
+    <AppShell
+      title={t("settings.title")}
+      description={t("settings.description")}
+      width="narrow"
+    >
       <nav className="mb-6 flex flex-wrap gap-3 text-sm">
         <SectionLink to="/settings/company" active={section === "company"}>
-          Societe
+          {t("settings.company")}
         </SectionLink>
         <SectionLink to="/settings/ai" active={section === "ai"}>
-          IA
+          {t("settings.ai")}
         </SectionLink>
         <SectionLink to="/settings/email" active={section === "email"}>
-          Email
+          {t("settings.email")}
         </SectionLink>
         <SectionLink to="/users" active={false}>
-          Utilisateurs
+          {t("settings.usersLink")}
         </SectionLink>
       </nav>
 
-      {query.isLoading ? <p className="text-[var(--muted)]">Chargement…</p> : null}
+      {query.isLoading ? <p className="text-[var(--muted)]">{t("common.loading")}</p> : null}
       {query.isError ? (
         <p className="text-[var(--danger)]">{(query.error as Error).message}</p>
       ) : null}
@@ -94,41 +105,46 @@ export function SettingsPage() {
       {data ? (
         <form
           onSubmit={onSubmit}
+          noValidate
           className="space-y-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
         >
           {section === "company" ? (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-[var(--brand-ink)]">Societe</p>
+              <p className="text-sm font-medium text-[var(--brand-ink)]">{t("settings.company")}</p>
               <label className="block text-sm">
-                Nom affiche
+                {t("settings.displayName")}
                 <input
                   className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  required
                   maxLength={200}
+                  aria-invalid={!!nameError}
                 />
+                {nameError ? <p className="mt-1 text-sm text-[var(--danger)]">{nameError}</p> : null}
               </label>
               <label className="block text-sm">
-                Identifiant (connexion)
+                {t("settings.identifier")}
                 <input
                   className="mt-1 w-full rounded-xl border border-[var(--line)] bg-[var(--bg-accent)] px-3 py-2 text-[var(--muted)]"
                   value={data.company.identifier}
                   readOnly
                 />
               </label>
-              <p className="text-xs text-[var(--muted)]">
-                L&apos;identifiant sert au login et ne peut pas etre modifie.
-              </p>
+              <p className="text-xs text-[var(--muted)]">{t("settings.identifierHint")}</p>
             </div>
           ) : null}
 
           {section === "ai" ? (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-[var(--brand-ink)]">Assistance IA</p>
+              <p className="text-sm font-medium text-[var(--brand-ink)]">{t("settings.aiTitle")}</p>
               <p className="text-sm text-[var(--muted)]">
-                Plateforme : {data.ai.platformEnabled ? "active" : "desactivee"} ·{" "}
-                {data.ai.provider} / {data.ai.model}
+                {t("settings.platform", {
+                  state: data.ai.platformEnabled
+                    ? t("settings.platformOn")
+                    : t("settings.platformOff"),
+                  provider: data.ai.provider,
+                  model: data.ai.model,
+                })}
               </p>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -136,27 +152,32 @@ export function SettingsPage() {
                   checked={companyAi}
                   onChange={(e) => setCompanyAi(e.target.checked)}
                 />
-                Autoriser l&apos;IA pour cette societe
+                {t("settings.companyAi")}
               </label>
               <p className="text-xs text-[var(--muted)]">
-                Effectif :{" "}
-                {data.ai.platformEnabled && companyAi
-                  ? "disponible"
-                  : "indisponible (plateforme ou societe)"}
-                . La generation de documents ne depend pas de l&apos;IA.
+                {t("settings.effective", {
+                  state:
+                    data.ai.platformEnabled && companyAi
+                      ? t("settings.available")
+                      : t("settings.unavailable"),
+                })}
               </p>
             </div>
           ) : null}
 
           {section === "email" ? (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-[var(--brand-ink)]">Email</p>
+              <p className="text-sm font-medium text-[var(--brand-ink)]">{t("settings.emailTitle")}</p>
               <p className="text-sm text-[var(--muted)]">
-                SMTP plateforme : {data.email.platformEnabled ? "actif" : "desactive"} · defaut{" "}
-                {data.email.platformFrom || "—"}
+                {t("settings.smtp", {
+                  state: data.email.platformEnabled
+                    ? t("settings.smtpOn")
+                    : t("settings.smtpOff"),
+                  from: data.email.platformFrom || "—",
+                })}
               </p>
               <label className="block text-sm">
-                Expediteur (override societe)
+                {t("settings.fromOverride")}
                 <input
                   type="email"
                   className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
@@ -165,10 +186,7 @@ export function SettingsPage() {
                   placeholder={data.email.platformFrom || "noreply@example.com"}
                 />
               </label>
-              <p className="text-xs text-[var(--muted)]">
-                Laisser vide pour reprendre l&apos;expediteur plateforme. Confirmation
-                utilisateur obligatoire avant envoi.
-              </p>
+              <p className="text-xs text-[var(--muted)]">{t("settings.fromHint")}</p>
             </div>
           ) : null}
 
@@ -179,11 +197,11 @@ export function SettingsPage() {
             disabled={save.isPending}
             className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm text-white disabled:opacity-60"
           >
-            {save.isPending ? "Enregistrement…" : "Enregistrer"}
+            {save.isPending ? t("common.saving") : t("common.save")}
           </button>
         </form>
       ) : null}
-    </div>
+    </AppShell>
   );
 }
 

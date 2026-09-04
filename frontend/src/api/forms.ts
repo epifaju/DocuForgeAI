@@ -4,8 +4,16 @@ import type { FormSchema, PageResponse, TemplateSummary } from "./types";
 
 export type { GeneratedDocument } from "./documents";
 
-export function listTemplates(token: string) {
-  return apiJson<PageResponse<TemplateSummary>>("/api/v1/templates?size=50", { token });
+export function listTemplates(
+  token: string,
+  opts: { page?: number; size?: number; status?: string; q?: string } = {},
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(opts.page ?? 0));
+  params.set("size", String(opts.size ?? 50));
+  if (opts.status) params.set("status", opts.status);
+  if (opts.q?.trim()) params.set("q", opts.q.trim());
+  return apiJson<PageResponse<TemplateSummary>>(`/api/v1/templates?${params}`, { token });
 }
 
 export function getFormSchema(token: string, versionId: string) {

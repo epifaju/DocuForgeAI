@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { listTemplates } from "@/api/forms";
 import {
@@ -9,23 +10,38 @@ import {
   uploadTemplateVersion,
 } from "@/api/templates";
 import { useAuth } from "@/auth/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { CreatePanel } from "@/components/CreatePanel";
+import { StatusBadge } from "@/components/StatusBadge";
+import { isBlank, TEMPLATE_CODE_PATTERN } from "@/lib/formValidation";
 
 export function TemplatesPage() {
+  const { t } = useTranslation();
   const { token, canEditTemplates } = useAuth();
   const queryClient = useQueryClient();
+  const [showCreate, setShowCreate] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("demo");
   const [message, setMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [uploadFor, setUploadFor] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
 
   const query = useQuery({
-    queryKey: ["templates"],
-    queryFn: () => listTemplates(token!),
+    queryKey: ["templates", page, pageSize],
+    queryFn: () => listTemplates(token!, { page, size: pageSize }),
     enabled: !!token,
   });
+
+  useEffect(() => {
+    if (!query.data) return;
+    if (query.data.totalPages > 0 && page >= query.data.totalPages) {
+      setPage(Math.max(0, query.data.totalPages - 1));
+    }
+  }, [query.data, page]);
 
   const create = useMutation({
     mutationFn: () =>
@@ -36,10 +52,12 @@ export function TemplatesPage() {
         category: category.trim() || undefined,
       }),
     onSuccess: (tpl) => {
-      setMessage(`Template ${tpl.code} cree (DRAFT). Uploadez un DOCX puis activez.`);
+      setMessage(t("templates.created", { code: tpl.code }));
       setCode("");
       setName("");
       setDescription("");
+      setShowCreate(false);
+      setPage(0);
       void queryClient.invalidateQueries({ queryKey: ["templates"] });
     },
     onError: (err: Error) => setMessage(err.message),
@@ -51,7 +69,7 @@ export function TemplatesPage() {
       return id;
     },
     onSuccess: () => {
-      setMessage("Version DOCX uploadee.");
+      setMessage(t("templates.uploaded"));
       setUploadFor(null);
       void queryClient.invalidateQueries({ queryKey: ["templates"] });
     },
@@ -61,7 +79,7 @@ export function TemplatesPage() {
   const activate = useMutation({
     mutationFn: (id: string) => activateTemplate(token!, id),
     onSuccess: (tpl) => {
-      setMessage(`Template ${tpl.code} ACTIVE.`);
+      setMessage(t("templates.activated", { code: tpl.code }));
       void queryClient.invalidateQueries({ queryKey: ["templates"] });
     },
     onError: (err: Error) => setMessage(err.message),
@@ -70,7 +88,7 @@ export function TemplatesPage() {
   const archive = useMutation({
     mutationFn: (id: string) => archiveTemplate(token!, id),
     onSuccess: (tpl) => {
-      setMessage(`Template ${tpl.code} archive.`);
+      setMessage(t("templates.archived", { code: tpl.code }));
       void queryClient.invalidateQueries({ queryKey: ["templates"] });
     },
     onError: (err: Error) => setMessage(err.message),
@@ -78,50 +96,81 @@ export function TemplatesPage() {
 
   function onCreate(e: FormEvent) {
     e.preventDefault();
+    const next: Record<string, string> = {};
+    const trimmedCode = code.trim();
+    if (isBlank(trimmedCode)) next.code = t("validation.required");
+    else if (!TEMPLATE_CODE_PATTERN.test(trimmedCode)) next.code = t("validation.templateCode");
+    if (isBlank(name)) next.name = t("validation.required");
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) return;
     setMessage(null);
     create.mutate();
   }
 
-  return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <AppHeader subtitle="Creez un template, uploadez un DOCX {{variables}}, puis activez-le." />
+  const items = query.data?.items ?? [];
 
-      {canEditTemplates ? (
-        <form
-          onSubmit={onCreate}
-          className="mb-8 space-y-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
-        >
-          <p className="text-sm font-medium text-[var(--brand-ink)]">Nouveau template</p>
+  return (
+    <AppShell
+      title={t("templates.title")}
+      description={t("templates.description", { placeholders: "{{variables}}" })}
+      width="wide"
+      actions={
+        canEditTemplates ? (
+          <button
+            type="button"
+            onClick={() => setShowCreate((v) => !v)}
+            className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white"
+          >
+            {showCreate ? t("templates.hide") : t("templates.new")}
+          </button>
+        ) : null
+      }
+    >
+      {!canEditTemplates ? (
+        <p className="mb-4 text-sm text-[var(--muted)]">{t("templates.readOnly")}</p>
+      ) : null}
+
+      <CreatePanel
+        open={showCreate}
+        title={t("templates.panelTitle")}
+        onClose={() => setShowCreate(false)}
+      >
+        <form onSubmit={onCreate} noValidate className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
-            Code
+            {t("templates.code")}
             <input
               className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="lettre_simple"
-              pattern="^[a-zA-Z][a-zA-Z0-9_.-]{0,99}$"
-              required
+              aria-invalid={!!fieldErrors.code}
             />
+            {fieldErrors.code ? (
+              <p className="mt-1 text-sm text-[var(--danger)]">{fieldErrors.code}</p>
+            ) : null}
           </label>
           <label className="block text-sm">
-            Nom
+            {t("templates.name")}
             <input
               className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              required
+              aria-invalid={!!fieldErrors.name}
             />
+            {fieldErrors.name ? (
+              <p className="mt-1 text-sm text-[var(--danger)]">{fieldErrors.name}</p>
+            ) : null}
           </label>
           <label className="block text-sm">
-            Categorie
+            {t("templates.category")}
             <input
               className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             />
           </label>
-          <label className="block text-sm">
-            Description
+          <label className="block text-sm sm:col-span-2">
+            {t("templates.descriptionLabel")}
             <textarea
               className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
               rows={2}
@@ -129,106 +178,141 @@ export function TemplatesPage() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
-          <button
-            type="submit"
-            disabled={create.isPending}
-            className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {create.isPending ? "Creation…" : "Creer le template"}
-          </button>
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              disabled={create.isPending}
+              className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {create.isPending ? t("common.creating") : t("common.create")}
+            </button>
+          </div>
         </form>
-      ) : (
-        <p className="mb-6 text-sm text-[var(--muted)]">
-          Lecture seule — seuls ADMIN / EDITOR peuvent creer ou uploader des templates.
-        </p>
-      )}
+      </CreatePanel>
 
       {message ? <p className="mb-4 text-sm text-[var(--muted)]">{message}</p> : null}
 
-      {query.isLoading ? <p>Chargement…</p> : null}
-      {query.isError ? <p className="text-[var(--danger)]">Impossible de charger les templates.</p> : null}
+      {query.isLoading ? <p>{t("common.loading")}</p> : null}
+      {query.isError ? <p className="text-[var(--danger)]">{t("templates.loadError")}</p> : null}
 
-      <ul className="space-y-3">
-        {(query.data?.items ?? []).map((tpl) => (
-          <li key={tpl.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="font-medium">{tpl.name}</p>
-                <p className="text-sm text-[var(--muted)]">
-                  {tpl.code} · {tpl.status}
-                  {tpl.currentVersionNumber != null ? ` · v${tpl.currentVersionNumber}` : ""}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tpl.currentVersionId ? (
-                  <Link
-                    to={`/forms/${tpl.currentVersionId}`}
-                    className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white"
-                  >
-                    Formulaire
-                  </Link>
-                ) : (
-                  <span className="self-center text-sm text-[var(--muted)]">Aucune version</span>
-                )}
-                {canEditTemplates ? (
-                  <>
-                    <button
-                      type="button"
-                      className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm"
-                      onClick={() => setUploadFor(uploadFor === tpl.id ? null : tpl.id)}
-                    >
-                      Upload DOCX
-                    </button>
-                    {tpl.status !== "ACTIVE" && tpl.currentVersionId ? (
-                      <button
-                        type="button"
-                        className="rounded-xl border border-[var(--brand)] px-3 py-2 text-sm text-[var(--brand)]"
-                        disabled={activate.isPending}
-                        onClick={() => activate.mutate(tpl.id)}
-                      >
-                        Activer
-                      </button>
+      <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-[var(--line)] text-[var(--muted)]">
+            <tr>
+              <th className="px-4 py-3 font-medium">{t("templates.colName")}</th>
+              <th className="px-4 py-3 font-medium">{t("templates.colCode")}</th>
+              <th className="px-4 py-3 font-medium">{t("templates.colStatus")}</th>
+              <th className="px-4 py-3 font-medium">{t("templates.colVersion")}</th>
+              <th className="px-4 py-3 font-medium">{t("templates.colActions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((tpl) => (
+              <tr key={tpl.id} className="border-b border-[var(--line)] align-top last:border-0">
+                <td className="px-4 py-3 font-medium">{tpl.name}</td>
+                <td className="px-4 py-3 font-mono text-xs text-[var(--muted)]">{tpl.code}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={tpl.status} />
+                </td>
+                <td className="px-4 py-3 text-[var(--muted)]">
+                  {tpl.currentVersionNumber != null ? `v${tpl.currentVersionNumber}` : "—"}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {tpl.currentVersionId ? (
+                      <Link to={`/forms/${tpl.currentVersionId}`} className="text-[var(--brand)] underline">
+                        {t("templates.form")}
+                      </Link>
+                    ) : (
+                      <span className="text-[var(--muted)]">{t("templates.noVersion")}</span>
+                    )}
+                    {canEditTemplates ? (
+                      <>
+                        <button
+                          type="button"
+                          className="text-[var(--brand)] underline"
+                          onClick={() => setUploadFor(uploadFor === tpl.id ? null : tpl.id)}
+                        >
+                          {t("templates.import")}
+                        </button>
+                        {tpl.status !== "ACTIVE" && tpl.currentVersionId ? (
+                          <button
+                            type="button"
+                            className="text-[var(--brand)] underline disabled:opacity-40"
+                            disabled={activate.isPending}
+                            onClick={() => activate.mutate(tpl.id)}
+                          >
+                            {t("templates.activate")}
+                          </button>
+                        ) : null}
+                        {tpl.status === "ACTIVE" ? (
+                          <button
+                            type="button"
+                            className="text-[var(--muted)] underline disabled:opacity-40"
+                            disabled={archive.isPending}
+                            onClick={() => archive.mutate(tpl.id)}
+                          >
+                            {t("templates.archive")}
+                          </button>
+                        ) : null}
+                      </>
                     ) : null}
-                    {tpl.status === "ACTIVE" ? (
-                      <button
-                        type="button"
-                        className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm text-[var(--muted)]"
-                        disabled={archive.isPending}
-                        onClick={() => archive.mutate(tpl.id)}
-                      >
-                        Archiver
-                      </button>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-            </div>
-            {uploadFor === tpl.id ? (
-              <label className="mt-3 block text-sm">
-                Fichier DOCX (variables {"{{...}}"})
-                <input
-                  type="file"
-                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  className="mt-1 block w-full text-sm"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) upload.mutate({ id: tpl.id, file });
-                  }}
-                />
-              </label>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+                  </div>
+                  {uploadFor === tpl.id ? (
+                    <label className="mt-2 block text-xs text-[var(--muted)]">
+                      {t("templates.docxFile")}
+                      <input
+                        type="file"
+                        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="mt-1 block w-full max-w-xs text-sm"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) upload.mutate({ id: tpl.id, file });
+                        }}
+                      />
+                    </label>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {!query.isLoading && (query.data?.items?.length ?? 0) === 0 ? (
+      {!query.isLoading && items.length === 0 ? (
         <p className="mt-6 text-[var(--muted)]">
-          Aucun template.{" "}
-          {canEditTemplates
-            ? "Creez-en un ci-dessus, ou importez templates/demo/lettre-simple.docx."
-            : "Demandez a un ADMIN/EDITOR d'en creer."}
+          {t("templates.empty")}{" "}
+          {canEditTemplates ? t("templates.emptyHintEdit") : t("templates.emptyHintView")}
         </p>
       ) : null}
-    </div>
+
+      {query.data && query.data.totalPages > 1 ? (
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <button
+            type="button"
+            disabled={page <= 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            className="rounded-xl border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
+          >
+            {t("common.previous")}
+          </button>
+          <span className="text-[var(--muted)]">
+            {t("common.pageOf", {
+              current: query.data.page + 1,
+              total: query.data.totalPages,
+              count: query.data.totalElements,
+            })}
+          </span>
+          <button
+            type="button"
+            disabled={page + 1 >= query.data.totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-xl border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
+          >
+            {t("common.next")}
+          </button>
+        </div>
+      ) : null}
+    </AppShell>
   );
 }

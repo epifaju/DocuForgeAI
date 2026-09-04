@@ -2,6 +2,7 @@ package ai.docuforge.common.web;
 
 import ai.docuforge.common.api.ErrorResponse;
 import ai.docuforge.common.api.ErrorResponse.FieldErrorDetail;
+import ai.docuforge.common.i18n.ErrorMessages;
 import ai.docuforge.form.FormValidationException;
 import ai.docuforge.storage.StorageException;
 import jakarta.validation.ConstraintViolationException;
@@ -25,41 +26,68 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private final ErrorMessages errorMessages;
+
+    public GlobalExceptionHandler(ErrorMessages errorMessages) {
+        this.errorMessages = errorMessages;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         List<FieldErrorDetail> details = ex.getBindingResult().getFieldErrors().stream()
                 .map(this::toDetail)
                 .toList();
-        return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Les donnees fournies sont invalides.", details);
+        return build(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_ERROR",
+                errorMessages.localize("error.validation"),
+                details
+        );
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraint(ConstraintViolationException ex) {
         List<FieldErrorDetail> details = ex.getConstraintViolations().stream()
-                .map(v -> new FieldErrorDetail(v.getPropertyPath().toString(), v.getMessage()))
+                .map(v -> new FieldErrorDetail(
+                        v.getPropertyPath().toString(),
+                        errorMessages.localize(v.getMessage())
+                ))
                 .toList();
-        return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Les donnees fournies sont invalides.", details);
+        return build(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_ERROR",
+                errorMessages.localize("error.validation"),
+                details
+        );
     }
 
     @ExceptionHandler(FormValidationException.class)
     public ResponseEntity<ErrorResponse> handleFormValidation(FormValidationException ex) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_FORM_DATA", ex.getMessage(), ex.getDetails());
+        List<FieldErrorDetail> details = ex.getDetails().stream()
+                .map(d -> new FieldErrorDetail(d.field(), errorMessages.localize(d.message())))
+                .toList();
+        return build(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "INVALID_FORM_DATA",
+                errorMessages.localize(ex.getMessage()),
+                details
+        );
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-        return build(HttpStatus.FORBIDDEN, "FORBIDDEN", "Acces refuse.", List.of());
+        return build(HttpStatus.FORBIDDEN, "FORBIDDEN", errorMessages.localize("error.forbidden"), List.of());
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
-        String message = ex.getMessage() == null ? "Authentification requise." : ex.getMessage();
-        return build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", message, List.of());
+        String raw = ex.getMessage() == null ? "error.auth.required" : ex.getMessage();
+        return build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", errorMessages.localize(raw), List.of());
     }
 
     @ExceptionHandler(StorageException.class)
     public ResponseEntity<ErrorResponse> handleStorage(StorageException ex) {
-        return build(ex.getStatus(), ex.getCode(), ex.getMessage(), List.of());
+        return build(ex.getStatus(), ex.getCode(), errorMessages.localize(ex.getMessage()), List.of());
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -70,9 +98,10 @@ public class GlobalExceptionHandler {
                 : status == HttpStatus.NOT_FOUND ? "NOT_FOUND"
                 : status == HttpStatus.CONFLICT ? "CONFLICT"
                 : status == HttpStatus.UNPROCESSABLE_ENTITY ? "INVALID_FORM_DATA"
+                : status == HttpStatus.TOO_MANY_REQUESTS ? "RATE_LIMITED"
                 : "REQUEST_ERROR";
-        String message = ex.getReason() == null ? status.getReasonPhrase() : ex.getReason();
-        return build(status, code, message, List.of());
+        String raw = ex.getReason() == null ? "error.internal" : ex.getReason();
+        return build(status, code, errorMessages.localize(raw), List.of());
     }
 
     @ExceptionHandler(Exception.class)
@@ -81,13 +110,16 @@ public class GlobalExceptionHandler {
         return build(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR",
-                "Une erreur interne est survenue.",
+                errorMessages.localize("error.internal"),
                 List.of()
         );
     }
 
     private FieldErrorDetail toDetail(FieldError error) {
-        return new FieldErrorDetail(error.getField(), error.getDefaultMessage());
+        String message = error.getDefaultMessage() == null
+                ? errorMessages.localize("error.validation")
+                : errorMessages.localize(error.getDefaultMessage());
+        return new FieldErrorDetail(error.getField(), message);
     }
 
     private ResponseEntity<ErrorResponse> build(

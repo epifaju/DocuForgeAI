@@ -1,19 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { listDocuments } from "@/api/documents";
 import { listTemplates } from "@/api/forms";
 import { useAuth } from "@/auth/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { dateLocale } from "@/i18n";
 
 const STATUSES = ["", "GENERATED", "CONVERTING", "COMPLETED", "FAILED"] as const;
 
 export function DocumentsPage() {
+  const { t, i18n } = useTranslation();
   const { token } = useAuth();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [page, setPage] = useState(0);
+  const loc = dateLocale(i18n.language);
 
   const filters = useMemo(
     () => ({
@@ -39,9 +43,11 @@ export function DocumentsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <AppHeader subtitle="Repository des documents generes — recherche et filtres cote serveur." />
-
+    <AppShell
+      title={t("documents.title")}
+      description={t("documents.description")}
+      width="wide"
+    >
       <form
         className="mb-6 grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:grid-cols-4"
         onSubmit={(e) => {
@@ -51,19 +57,19 @@ export function DocumentsPage() {
         }}
       >
         <label className="block text-sm sm:col-span-2">
-          Recherche
+          {t("documents.search")}
           <input
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
               setPage(0);
             }}
-            placeholder="Reference ou titre"
+            placeholder={t("documents.searchPlaceholder")}
             className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
           />
         </label>
         <label className="block text-sm">
-          Statut
+          {t("documents.status")}
           <select
             value={status}
             onChange={(e) => {
@@ -74,13 +80,13 @@ export function DocumentsPage() {
           >
             {STATUSES.map((s) => (
               <option key={s || "all"} value={s}>
-                {s || "Tous"}
+                {s || t("common.all")}
               </option>
             ))}
           </select>
         </label>
         <label className="block text-sm">
-          Template
+          {t("documents.template")}
           <select
             value={templateId}
             onChange={(e) => {
@@ -89,7 +95,7 @@ export function DocumentsPage() {
             }}
             className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
           >
-            <option value="">Tous</option>
+            <option value="">{t("common.all")}</option>
             {(templates.data?.items ?? []).map((tpl) => (
               <option key={tpl.id} value={tpl.id}>
                 {tpl.name}
@@ -99,21 +105,21 @@ export function DocumentsPage() {
         </label>
       </form>
 
-      {docs.isLoading ? <p>Chargement…</p> : null}
-      {docs.isError ? <p className="text-[var(--danger)]">Impossible de charger les documents.</p> : null}
+      {docs.isLoading ? <p>{t("common.loading")}</p> : null}
+      {docs.isError ? <p className="text-[var(--danger)]">{t("documents.loadError")}</p> : null}
 
       <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-[var(--line)] text-[var(--muted)]">
             <tr>
-              <th className="px-4 py-3 font-medium">Reference</th>
-              <th className="px-4 py-3 font-medium">Titre</th>
-              <th className="px-4 py-3 font-medium">Template</th>
-              <th className="px-4 py-3 font-medium">Version</th>
-              <th className="px-4 py-3 font-medium">Statut</th>
-              <th className="px-4 py-3 font-medium">Auteur</th>
-              <th className="px-4 py-3 font-medium">Cree le</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colReference")}</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colTitle")}</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colTemplate")}</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colVersion")}</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colStatus")}</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colAuthor")}</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colCreated")}</th>
+              <th className="px-4 py-3 font-medium">{t("documents.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -125,15 +131,17 @@ export function DocumentsPage() {
                   <span className="block">{doc.templateName}</span>
                   <span className="text-xs text-[var(--muted)]">{doc.templateCode}</span>
                 </td>
-                <td className="px-4 py-3">doc v{doc.documentVersionNumber ?? 1}</td>
+                <td className="px-4 py-3">
+                  {t("documents.docVersion", { n: doc.documentVersionNumber ?? 1 })}
+                </td>
                 <td className="px-4 py-3">{doc.status}</td>
                 <td className="px-4 py-3">{doc.createdByName ?? "—"}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  {new Date(doc.createdAt).toLocaleString("fr-FR")}
+                  {new Date(doc.createdAt).toLocaleString(loc)}
                 </td>
                 <td className="px-4 py-3">
                   <Link to={`/documents/${doc.id}`} className="text-[var(--brand)] underline">
-                    Ouvrir
+                    {t("common.open")}
                   </Link>
                 </td>
               </tr>
@@ -143,7 +151,7 @@ export function DocumentsPage() {
       </div>
 
       {!docs.isLoading && (docs.data?.items?.length ?? 0) === 0 ? (
-        <p className="mt-6 text-[var(--muted)]">Aucun document pour ces filtres.</p>
+        <p className="mt-6 text-[var(--muted)]">{t("documents.empty")}</p>
       ) : null}
 
       {docs.data && docs.data.totalPages > 1 ? (
@@ -154,10 +162,14 @@ export function DocumentsPage() {
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             className="rounded-xl border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
           >
-            Precedent
+            {t("common.previous")}
           </button>
           <span className="text-[var(--muted)]">
-            Page {docs.data.page + 1} / {docs.data.totalPages} ({docs.data.totalElements})
+            {t("common.pageOf", {
+              current: docs.data.page + 1,
+              total: docs.data.totalPages,
+              count: docs.data.totalElements,
+            })}
           </span>
           <button
             type="button"
@@ -165,10 +177,10 @@ export function DocumentsPage() {
             onClick={() => setPage((p) => p + 1)}
             className="rounded-xl border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
           >
-            Suivant
+            {t("common.next")}
           </button>
         </div>
       ) : null}
-    </div>
+    </AppShell>
   );
 }

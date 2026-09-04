@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import {
   type AttachmentFormat,
@@ -11,11 +12,15 @@ import {
   listDocumentVersions,
 } from "@/api/documents";
 import { useAuth } from "@/auth/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { StatusBadge } from "@/components/StatusBadge";
+import { dateLocale } from "@/i18n";
 
 export function DocumentDetailPage() {
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { token } = useAuth();
+  const loc = dateLocale(i18n.language);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
@@ -72,7 +77,7 @@ export function DocumentDetailPage() {
         objectUrl = URL.createObjectURL(blob);
         setPdfUrl(objectUrl);
       } catch {
-        if (!cancelled) setPdfError("Apercu PDF indisponible.");
+        if (!cancelled) setPdfError(t("document.pdfError"));
       }
     }
 
@@ -81,7 +86,7 @@ export function DocumentDetailPage() {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [token, doc?.id, doc?.pdfStorageKey]);
+  }, [token, doc?.id, doc?.pdfStorageKey, t]);
 
   const sendMutation = useMutation({
     mutationFn: () =>
@@ -95,11 +100,13 @@ export function DocumentDetailPage() {
     onSuccess: (result) => {
       setConfirmOpen(false);
       setEmailError(null);
-      setEmailFeedback(`Email envoye a ${result.recipient} (${result.status}).`);
+      setEmailFeedback(
+        t("document.emailSent", { recipient: result.recipient, status: result.status }),
+      );
     },
     onError: (err: Error) => {
       setEmailFeedback(null);
-      setEmailError(err.message || "Envoi impossible.");
+      setEmailError(err.message || t("document.emailFailed"));
     },
   });
 
@@ -108,148 +115,213 @@ export function DocumentDetailPage() {
     setEmailError(null);
     setEmailFeedback(null);
     if (!recipient.trim() || !subject.trim()) {
-      setEmailError("Destinataire et sujet sont requis.");
+      setEmailError(t("document.emailRequired"));
       return;
     }
     setConfirmOpen(true);
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <AppHeader subtitle="Detail document — versions, previsualisation et telechargements." />
-
-      <p className="mb-4 text-sm">
-        <Link to="/documents" className="text-[var(--brand)] underline">
-          ← Retour au repository
+    <AppShell
+      title={doc?.title ?? t("document.title")}
+      description={
+        doc ? t("document.description", { reference: doc.reference }) : t("document.loadingDesc")
+      }
+      width="wide"
+      actions={
+        <Link to="/documents" className="text-sm text-[var(--brand)] underline">
+          {t("documents.back")}
         </Link>
-      </p>
-
-      {query.isLoading ? <p>Chargement…</p> : null}
-      {query.isError ? <p className="text-[var(--danger)]">Document introuvable.</p> : null}
+      }
+    >
+      {query.isLoading ? <p>{t("common.loading")}</p> : null}
+      {query.isError ? <p className="text-[var(--danger)]">{t("document.notFound")}</p> : null}
 
       {doc ? (
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
-            <p className="font-mono text-xs text-[var(--muted)]">{doc.reference}</p>
-            <h1 className="mt-1 text-2xl text-[var(--brand-ink)]">{doc.title}</h1>
-            <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-[var(--muted)]">Statut</dt>
-                <dd>{doc.status}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--muted)]">Version document</dt>
-                <dd>v{doc.documentVersionNumber ?? 1}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--muted)]">Template</dt>
-                <dd>
-                  {doc.templateName} ({doc.templateCode}) · tpl v{doc.templateVersionNumber}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[var(--muted)]">Auteur</dt>
-                <dd>{doc.createdByName ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--muted)]">Cree le</dt>
-                <dd>{new Date(doc.createdAt).toLocaleString("fr-FR")}</dd>
-              </div>
-            </dl>
+        <>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+            {/* Left: metadata + actions */}
+            <div className="space-y-5 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1">
+              <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
+                <p className="font-mono text-xs text-[var(--muted)]">{doc.reference}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <StatusBadge status={doc.status} />
+                  <span className="text-sm text-[var(--muted)]">
+                    {t("documents.docVersion", { n: doc.documentVersionNumber ?? 1 })}
+                  </span>
+                </div>
+                <dl className="mt-4 grid gap-3 text-sm">
+                  <div>
+                    <dt className="text-[var(--muted)]">{t("document.template")}</dt>
+                    <dd>
+                      {doc.templateName}{" "}
+                      <span className="text-[var(--muted)]">
+                        ({doc.templateCode} · tpl v{doc.templateVersionNumber})
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">{t("document.author")}</dt>
+                    <dd>{doc.createdByName ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--muted)]">{t("document.created")}</dt>
+                    <dd>{new Date(doc.createdAt).toLocaleString(loc)}</dd>
+                  </div>
+                </dl>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link
-                to={`/documents/${doc.id}/new-version`}
-                className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white"
-              >
-                Nouvelle version
-              </Link>
-              {doc.docxStorageKey ? (
-                <button
-                  type="button"
-                  className="rounded-xl border border-[var(--brand)] px-4 py-2 text-sm font-medium text-[var(--brand)]"
-                  onClick={() => void downloadGeneratedDocx(token!, doc.id, doc.reference)}
-                >
-                  Telecharger DOCX
-                </button>
-              ) : null}
-              {doc.pdfStorageKey ? (
-                <button
-                  type="button"
-                  className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm font-medium"
-                  onClick={() => void downloadGeneratedPdf(token!, doc.id, doc.reference)}
-                >
-                  Telecharger PDF
-                </button>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
-            <h2 className="text-lg text-[var(--brand-ink)]">Envoyer par email</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Une confirmation est exigee avant l&apos;envoi SMTP (Mailpit en DEV).
-            </p>
-
-            {formatOptions.length === 0 ? (
-              <p className="mt-3 text-sm text-[var(--muted)]">Aucun fichier attachable pour ce document.</p>
-            ) : (
-              <form className="mt-4 space-y-3" onSubmit={openConfirm}>
-                <label className="block text-sm">
-                  <span className="text-[var(--muted)]">Destinataire</span>
-                  <input
-                    type="email"
-                    required
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
-                    placeholder="client@exemple.com"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-[var(--muted)]">Sujet</span>
-                  <input
-                    type="text"
-                    required
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-[var(--muted)]">Message</span>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={4}
-                    className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-[var(--muted)]">Piece jointe</span>
-                  <select
-                    value={attachmentFormat}
-                    onChange={(e) => setAttachmentFormat(e.target.value as AttachmentFormat)}
-                    className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                <div className="mt-5 flex flex-col gap-2">
+                  <Link
+                    to={`/documents/${doc.id}/new-version`}
+                    className="rounded-xl bg-[var(--brand)] px-4 py-2 text-center text-sm font-medium text-white"
                   >
-                    {formatOptions.map((fmt) => (
-                      <option key={fmt} value={fmt}>
-                        {fmt}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {emailError ? <p className="text-sm text-[var(--danger)]">{emailError}</p> : null}
-                {emailFeedback ? <p className="text-sm text-[var(--brand)]">{emailFeedback}</p> : null}
-                <button
-                  type="submit"
-                  className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white"
-                >
-                  Envoyer…
-                </button>
-              </form>
-            )}
-          </section>
+                    {t("document.newVersion")}
+                  </Link>
+                  {doc.docxStorageKey ? (
+                    <button
+                      type="button"
+                      className="rounded-xl border border-[var(--brand)] px-4 py-2 text-sm font-medium text-[var(--brand)]"
+                      onClick={() => void downloadGeneratedDocx(token!, doc.id, doc.reference)}
+                    >
+                      {t("document.downloadDocx")}
+                    </button>
+                  ) : null}
+                  {doc.pdfStorageKey ? (
+                    <button
+                      type="button"
+                      className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm font-medium"
+                      onClick={() => void downloadGeneratedPdf(token!, doc.id, doc.reference)}
+                    >
+                      {t("document.downloadPdf")}
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
+                <h2 className="text-base text-[var(--brand-ink)]">{t("document.emailTitle")}</h2>
+                <p className="mt-1 text-xs text-[var(--muted)]">{t("document.emailHint")}</p>
+
+                {formatOptions.length === 0 ? (
+                  <p className="mt-3 text-sm text-[var(--muted)]">{t("document.noAttach")}</p>
+                ) : (
+                  <form className="mt-3 space-y-3" onSubmit={openConfirm} noValidate>
+                    <label className="block text-sm">
+                      {t("document.recipient")}
+                      <input
+                        type="email"
+                        value={recipient}
+                        onChange={(e) => setRecipient(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                        placeholder="client@exemple.com"
+                      />
+                    </label>
+                    <label className="block text-sm">
+                      {t("document.subject")}
+                      <input
+                        type="text"
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                      />
+                    </label>
+                    <label className="block text-sm">
+                      {t("document.message")}
+                      <textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        rows={3}
+                        className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                      />
+                    </label>
+                    <label className="block text-sm">
+                      {t("document.attachment")}
+                      <select
+                        value={attachmentFormat}
+                        onChange={(e) => setAttachmentFormat(e.target.value as AttachmentFormat)}
+                        className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                      >
+                        {formatOptions.map((fmt) => (
+                          <option key={fmt} value={fmt}>
+                            {fmt}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {emailError ? <p className="text-sm text-[var(--danger)]">{emailError}</p> : null}
+                    {emailFeedback ? (
+                      <p className="text-sm text-[var(--brand)]">{emailFeedback}</p>
+                    ) : null}
+                    <button
+                      type="submit"
+                      className="w-full rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white"
+                    >
+                      {t("document.send")}
+                    </button>
+                  </form>
+                )}
+              </section>
+
+              <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
+                <h2 className="text-base text-[var(--brand-ink)]">{t("document.versions")}</h2>
+                <ul className="mt-3 space-y-2 text-sm">
+                  {(versions.data ?? []).map((v) => (
+                    <li
+                      key={v.id}
+                      className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] py-2 last:border-0"
+                    >
+                      <span>
+                        v{v.documentVersionNumber} · {v.reference}
+                      </span>
+                      {v.id === doc.id ? (
+                        <span className="text-xs text-[var(--muted)]">{t("document.current")}</span>
+                      ) : (
+                        <Link to={`/documents/${v.id}`} className="text-[var(--brand)] underline">
+                          {t("common.open")}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+
+            {/* Right: sticky PDF preview */}
+            <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 lg:sticky lg:top-20 lg:self-start">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-base text-[var(--brand-ink)]">{t("document.pdfPreview")}</h2>
+                {doc.pdfStorageKey && pdfUrl ? (
+                  <button
+                    type="button"
+                    className="text-xs text-[var(--brand)] underline"
+                    onClick={() => void downloadGeneratedPdf(token!, doc.id, doc.reference)}
+                  >
+                    {t("document.download")}
+                  </button>
+                ) : null}
+              </div>
+              {!doc.pdfStorageKey ? (
+                <div className="flex h-[50vh] items-center justify-center rounded-xl border border-dashed border-[var(--line)] bg-white/60 px-4 text-center text-sm text-[var(--muted)] lg:h-[calc(100vh-12rem)]">
+                  {t("document.noPdf", { status: doc.status })}
+                </div>
+              ) : null}
+              {pdfError ? (
+                <p className="text-sm text-[var(--danger)]">{pdfError}</p>
+              ) : null}
+              {doc.pdfStorageKey && !pdfUrl && !pdfError ? (
+                <div className="flex h-[50vh] items-center justify-center text-sm text-[var(--muted)] lg:h-[calc(100vh-12rem)]">
+                  {t("document.pdfLoading")}
+                </div>
+              ) : null}
+              {pdfUrl ? (
+                <iframe
+                  title={`${t("document.pdfPreview")} ${doc.reference}`}
+                  src={pdfUrl}
+                  className="h-[70vh] w-full rounded-xl border border-[var(--line)] bg-white lg:h-[calc(100vh-12rem)]"
+                />
+              ) : null}
+            </section>
+          </div>
 
           {confirmOpen ? (
             <div
@@ -260,11 +332,14 @@ export function DocumentDetailPage() {
             >
               <div className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-lg">
                 <h3 id="email-confirm-title" className="text-lg text-[var(--brand-ink)]">
-                  Confirmer l&apos;envoi
+                  {t("document.confirmTitle")}
                 </h3>
                 <p className="mt-2 text-sm text-[var(--muted)]">
-                  Envoyer <strong>{attachmentFormat}</strong> de <strong>{doc.reference}</strong> a{" "}
-                  <strong>{recipient}</strong> ?
+                  {t("document.confirmBody", {
+                    format: attachmentFormat,
+                    reference: doc.reference,
+                    recipient,
+                  })}
                 </p>
                 <div className="mt-5 flex flex-wrap justify-end gap-2">
                   <button
@@ -273,7 +348,7 @@ export function DocumentDetailPage() {
                     disabled={sendMutation.isPending}
                     onClick={() => setConfirmOpen(false)}
                   >
-                    Annuler
+                    {t("common.cancel")}
                   </button>
                   <button
                     type="button"
@@ -281,51 +356,14 @@ export function DocumentDetailPage() {
                     disabled={sendMutation.isPending}
                     onClick={() => sendMutation.mutate()}
                   >
-                    {sendMutation.isPending ? "Envoi…" : "Confirmer l'envoi"}
+                    {sendMutation.isPending ? t("document.sending") : t("document.confirmSend")}
                   </button>
                 </div>
               </div>
             </div>
           ) : null}
-
-          <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
-            <h2 className="text-lg text-[var(--brand-ink)]">Historique des versions</h2>
-            <ul className="mt-3 space-y-2 text-sm">
-              {(versions.data ?? []).map((v) => (
-                <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] py-2 last:border-0">
-                  <span>
-                    v{v.documentVersionNumber} · {v.reference} · {v.status}
-                  </span>
-                  {v.id === doc.id ? (
-                    <span className="text-[var(--muted)]">Courante</span>
-                  ) : (
-                    <Link to={`/documents/${v.id}`} className="text-[var(--brand)] underline">
-                      Ouvrir
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
-            <h2 className="text-lg text-[var(--brand-ink)]">Apercu PDF</h2>
-            {!doc.pdfStorageKey ? (
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                Pas de PDF pour ce document (statut {doc.status}).
-              </p>
-            ) : null}
-            {pdfError ? <p className="mt-2 text-sm text-[var(--danger)]">{pdfError}</p> : null}
-            {pdfUrl ? (
-              <iframe
-                title={`Apercu ${doc.reference}`}
-                src={pdfUrl}
-                className="mt-4 h-[70vh] w-full rounded-xl border border-[var(--line)] bg-white"
-              />
-            ) : null}
-          </section>
-        </div>
+        </>
       ) : null}
-    </div>
+    </AppShell>
   );
 }

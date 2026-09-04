@@ -2,6 +2,7 @@ package ai.docuforge.security.ratelimit;
 
 import ai.docuforge.auth.security.DocuForgePrincipal;
 import ai.docuforge.common.api.ErrorResponse;
+import ai.docuforge.common.i18n.ErrorMessages;
 import ai.docuforge.config.RateLimitProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bandwidth;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.MDC;
@@ -24,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.LocaleResolver;
 
 @Component
 @Order(Ordered.LOWEST_PRECEDENCE - 20)
@@ -31,11 +34,20 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitProperties properties;
     private final ObjectMapper objectMapper;
+    private final ErrorMessages errorMessages;
+    private final LocaleResolver localeResolver;
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    public RateLimitFilter(RateLimitProperties properties, ObjectMapper objectMapper) {
+    public RateLimitFilter(
+            RateLimitProperties properties,
+            ObjectMapper objectMapper,
+            ErrorMessages errorMessages,
+            LocaleResolver localeResolver
+    ) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.errorMessages = errorMessages;
+        this.localeResolver = localeResolver;
     }
 
     @Override
@@ -54,12 +66,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if ("POST".equalsIgnoreCase(method) && path.equals("/api/v1/auth/login")) {
             if (!tryConsume("login:" + clientKey(request), properties.loginPerMinute())) {
-                writeTooMany(response, "Trop de tentatives de connexion. Reessayez plus tard.");
+                writeTooMany(response, request, "error.rate_limit.login");
                 return;
             }
         } else if (path.startsWith("/api/v1/ai/") && !"GET".equalsIgnoreCase(method)) {
             if (!tryConsume("ai:" + principalOrIp(request), properties.aiPerMinute())) {
-                writeTooMany(response, "Limite d'appels IA atteinte. Reessayez plus tard.");
+                writeTooMany(response, request, "error.rate_limit.ai");
                 return;
             }
         }
@@ -94,7 +106,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return request.getRemoteAddr() == null ? "unknown" : request.getRemoteAddr();
     }
 
-    private void writeTooMany(HttpServletResponse response, String message) throws IOException {
+    private void writeTooMany(HttpServletResponse response, HttpServletRequest request, String messageKey)
+            throws IOException {
+        Locale locale = localeResolver.resolveLocale(request);
+        String message = errorMessages.msg(messageKey, locale);
         response.setStatus(429);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(

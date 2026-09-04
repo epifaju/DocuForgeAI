@@ -1,4 +1,4 @@
-import { apiJson } from "./client";
+import { apiJson, bearerHeaders } from "./client";
 import type { PageResponse } from "./types";
 
 export interface GeneratedDocument {
@@ -78,7 +78,7 @@ export async function downloadGeneratedPdf(token: string, documentId: string, fi
 
 export async function fetchPdfBlob(token: string, documentId: string): Promise<Blob> {
   const response = await fetch(`/api/v1/documents/${documentId}/download/pdf?preview=true`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: bearerHeaders(token),
   });
   if (!response.ok) {
     throw new Error("Apercu PDF impossible");
@@ -117,7 +117,7 @@ export function emailDocument(token: string, documentId: string, payload: Docume
 
 async function downloadBinary(token: string, path: string, filename: string, ext: string) {
   const response = await fetch(path, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: bearerHeaders(token),
   });
   if (!response.ok) {
     throw new Error(`Telechargement ${ext} impossible`);

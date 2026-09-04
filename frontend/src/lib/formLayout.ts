@@ -11,7 +11,7 @@ export function groupFieldsByPrefix(fields: FormFieldSchema[]): FieldSection[] {
   const sorted = [...fields].sort((a, b) => a.displayOrder - b.displayOrder);
   const hasDots = sorted.some((f) => f.key.includes("."));
   if (!hasDots) {
-    return [{ id: "fields", title: "Champs", fields: sorted }];
+    return [{ id: "fields", title: "", fields: sorted }];
   }
 
   const order: string[] = [];
@@ -34,7 +34,7 @@ export function groupFieldsByPrefix(fields: FormFieldSchema[]): FieldSection[] {
 }
 
 function formatSectionTitle(prefix: string): string {
-  if (!prefix) return "Champs";
+  if (!prefix) return "";
   return prefix
     .replace(/[_-]+/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")

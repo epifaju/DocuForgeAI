@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { getAiStatus } from "@/api/ai";
 import { ApiError } from "@/api/client";
@@ -21,7 +22,13 @@ interface Props {
   submitLabel?: string;
 }
 
-export function DynamicForm({
+export function DynamicForm(props: Props) {
+  const { i18n } = useTranslation();
+  // Remount when language changes so Zod resolver messages refresh.
+  return <DynamicFormInner key={i18n.language} {...props} />;
+}
+
+function DynamicFormInner({
   schema,
   initialValues,
   mode = "generate",
@@ -29,11 +36,12 @@ export function DynamicForm({
   submitLabel,
 }: Props) {
   const { token } = useAuth();
+  const { t, i18n } = useTranslation();
   const formRef = useRef<HTMLFormElement>(null);
   const [serverMessage, setServerMessage] = useState<string | null>(null);
   const [lastDocId, setLastDocId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const zodSchema = useMemo(() => schemaToZod(schema), [schema]);
+  const zodSchema = useMemo(() => schemaToZod(schema, t), [schema, t, i18n.language]);
   const sections = useMemo(() => groupFieldsByPrefix(schema.fields), [schema.fields]);
   const defaults = useMemo(
     () => ({
@@ -110,8 +118,12 @@ export function DynamicForm({
         setLastDocId(doc.id);
         setServerMessage(
           mode === "new-version"
-            ? `Version ${doc.documentVersionNumber} creee (${doc.reference}, ${doc.status}).`
-            : `Document ${doc.reference} genere (${doc.status}).`,
+            ? t("form.versionCreated", {
+                n: doc.documentVersionNumber,
+                reference: doc.reference,
+                status: doc.status,
+              })
+            : t("form.generated", { reference: doc.reference, status: doc.status }),
         );
         if (doc.status === "COMPLETED") {
           await downloadGeneratedPdf(token, doc.id, doc.reference);
@@ -129,7 +141,9 @@ export function DynamicForm({
           setServerMessage(err.message);
           scrollToFirstError(keys);
         } else {
-          setServerMessage(mode === "new-version" ? "Nouvelle version impossible." : "Generation impossible.");
+          setServerMessage(
+            mode === "new-version" ? t("form.versionFailed") : t("form.generateFailed"),
+          );
         }
       }
     },
@@ -139,19 +153,20 @@ export function DynamicForm({
   );
 
   const defaultLabel =
-    submitLabel ?? (mode === "new-version" ? "Creer une nouvelle version" : "Generer le document");
+    submitLabel ??
+    (mode === "new-version" ? t("form.createVersion") : t("form.generate"));
 
   return (
     <form ref={formRef} onSubmit={onSubmit} className="space-y-5 pb-28" noValidate>
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-sm">
-        <p className="text-sm text-[var(--muted)]">Template</p>
+        <p className="text-sm text-[var(--muted)]">{t("form.template")}</p>
         <h2 className="mt-1 text-2xl text-[var(--brand-ink)]">
           {schema.templateName}{" "}
           <span className="text-base font-normal text-[var(--muted)]">v{schema.versionNumber}</span>
         </h2>
         <p className="mt-1 text-sm text-[var(--muted)]">{schema.templateCode}</p>
         {sections.length > 1 ? (
-          <nav className="mt-4 flex flex-wrap gap-2" aria-label="Sections du formulaire">
+          <nav className="mt-4 flex flex-wrap gap-2" aria-label={t("form.sectionsAria")}>
             {sections.map((section) => (
               <a
                 key={section.id}
@@ -159,7 +174,7 @@ export function DynamicForm({
                 className="rounded-lg border border-[var(--line)] bg-white px-2.5 py-1 text-xs text-[var(--brand)] hover:border-[var(--brand)]"
                 onClick={() => setCollapsed((prev) => ({ ...prev, [section.id]: false }))}
               >
-                {section.title}
+                {section.id === "fields" || !section.title ? t("form.fields") : section.title}
                 <span className="ml-1 text-[var(--muted)]">({section.fields.length})</span>
               </a>
             ))}
@@ -188,17 +203,19 @@ export function DynamicForm({
               aria-expanded={!isCollapsed}
             >
               <span className="font-medium text-[var(--brand-ink)]">
-                {section.title}
+                {section.id === "fields" || !section.title ? t("form.fields") : section.title}
                 <span className="ml-2 text-sm font-normal text-[var(--muted)]">
-                  {section.fields.length} champ{section.fields.length > 1 ? "s" : ""}
+                  {t("form.fieldCount", { count: section.fields.length })}
                 </span>
                 {sectionErrorCount > 0 ? (
                   <span className="ml-2 text-sm font-normal text-[var(--danger)]">
-                    · {sectionErrorCount} erreur{sectionErrorCount > 1 ? "s" : ""}
+                    · {t("form.errors", { count: sectionErrorCount })}
                   </span>
                 ) : null}
               </span>
-              <span className="text-sm text-[var(--muted)]">{isCollapsed ? "Afficher" : "Masquer"}</span>
+              <span className="text-sm text-[var(--muted)]">
+                {isCollapsed ? t("form.show") : t("form.hide")}
+              </span>
             </button>
 
             {!isCollapsed ? (
@@ -234,8 +251,8 @@ export function DynamicForm({
           >
             {isSubmitting
               ? mode === "new-version"
-                ? "Creation…"
-                : "Generation…"
+                ? t("form.creating")
+                : t("form.generating")
               : defaultLabel}
           </button>
           {errorCount > 0 ? (
@@ -244,13 +261,13 @@ export function DynamicForm({
               className="text-sm text-[var(--danger)] underline"
               onClick={() => scrollToFirstError()}
             >
-              {errorCount} erreur{errorCount > 1 ? "s" : ""} — aller a la premiere
+              {t("form.goToFirstError", { count: errorCount })}
             </button>
           ) : null}
           {serverMessage ? <p className="text-sm text-[var(--muted)]">{serverMessage}</p> : null}
           {lastDocId ? (
             <Link to={`/documents/${lastDocId}`} className="text-sm text-[var(--brand)] underline">
-              Voir dans le repository
+              {t("form.viewDoc")}
             </Link>
           ) : null}
         </div>

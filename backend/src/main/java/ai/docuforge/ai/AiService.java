@@ -10,6 +10,7 @@ import ai.docuforge.config.AiProperties;
 import ai.docuforge.domain.ai.AiRequestEntity;
 import ai.docuforge.domain.ai.AiRequestRepository;
 import ai.docuforge.domain.company.CompanyRepository;
+import ai.docuforge.settings.ApplicationSettingsService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,19 +25,22 @@ public class AiService {
     private final AiRequestRepository aiRequestRepository;
     private final AuditService auditService;
     private final CompanyRepository companyRepository;
+    private final ApplicationSettingsService applicationSettingsService;
 
     public AiService(
             AiProperties properties,
             ObjectProvider<AIProvider> aiProvider,
             AiRequestRepository aiRequestRepository,
             AuditService auditService,
-            CompanyRepository companyRepository
+            CompanyRepository companyRepository,
+            ApplicationSettingsService applicationSettingsService
     ) {
         this.properties = properties;
         this.aiProvider = aiProvider;
         this.aiRequestRepository = aiRequestRepository;
         this.auditService = auditService;
         this.companyRepository = companyRepository;
+        this.applicationSettingsService = applicationSettingsService;
     }
 
     public AiStatusResponse status() {
@@ -49,7 +53,8 @@ public class AiService {
 
     @Transactional
     public AiAssistResponse assist(DocuForgePrincipal principal, AiOperation operation, AiAssistRequest request) {
-        if (!properties.enabled()) {
+        if (!properties.enabled()
+                || !applicationSettingsService.isCompanyAiEnabled(principal.getCompanyId())) {
             throw AiException.disabled();
         }
         AIProvider provider = aiProvider.getIfAvailable();

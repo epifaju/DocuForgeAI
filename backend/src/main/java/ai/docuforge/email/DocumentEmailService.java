@@ -13,6 +13,7 @@ import ai.docuforge.domain.email.EmailDeliveryRepository;
 import ai.docuforge.domain.email.EmailDeliveryStatus;
 import ai.docuforge.email.dto.DocumentEmailRequest;
 import ai.docuforge.email.dto.DocumentEmailResponse;
+import ai.docuforge.settings.ApplicationSettingsService;
 import ai.docuforge.storage.StorageProvider;
 import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
@@ -49,6 +50,7 @@ public class DocumentEmailService {
     private final StorageProvider storageProvider;
     private final JavaMailSender mailSender;
     private final MailProperties mailProperties;
+    private final ApplicationSettingsService applicationSettingsService;
     private final TransactionTemplate requiresNewTx;
 
     public DocumentEmailService(
@@ -59,6 +61,7 @@ public class DocumentEmailService {
             StorageProvider storageProvider,
             JavaMailSender mailSender,
             MailProperties mailProperties,
+            ApplicationSettingsService applicationSettingsService,
             PlatformTransactionManager transactionManager
     ) {
         this.generatedDocumentRepository = generatedDocumentRepository;
@@ -68,6 +71,7 @@ public class DocumentEmailService {
         this.storageProvider = storageProvider;
         this.mailSender = mailSender;
         this.mailProperties = mailProperties;
+        this.applicationSettingsService = applicationSettingsService;
         this.requiresNewTx = new TransactionTemplate(transactionManager);
         this.requiresNewTx.setPropagationBehavior(TransactionTemplate.PROPAGATION_REQUIRES_NEW);
     }
@@ -80,7 +84,10 @@ public class DocumentEmailService {
         if (!mailProperties.enabled()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Envoi email desactive.");
         }
-        if (mailProperties.from() == null || mailProperties.from().isBlank()) {
+        String fromAddress = applicationSettingsService
+                .getEmailFrom(principal.getCompanyId())
+                .orElse(mailProperties.from());
+        if (fromAddress == null || fromAddress.isBlank()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Expediteur SMTP non configure.");
         }
 
@@ -111,7 +118,7 @@ public class DocumentEmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(mailProperties.from());
+            helper.setFrom(fromAddress);
             helper.setTo(delivery.getRecipient());
             helper.setSubject(delivery.getSubject());
             String body = request.message() == null || request.message().isBlank()

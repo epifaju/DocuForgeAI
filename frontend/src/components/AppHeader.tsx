@@ -25,9 +25,14 @@ export function AppHeader({ subtitle }: { subtitle: string }) {
             Audit
           </Link>
           {isAdmin ? (
-            <Link to="/users" className="text-[var(--brand)] underline-offset-2 hover:underline">
-              Users
-            </Link>
+            <>
+              <Link to="/settings" className="text-[var(--brand)] underline-offset-2 hover:underline">
+                Settings
+              </Link>
+              <Link to="/users" className="text-[var(--brand)] underline-offset-2 hover:underline">
+                Users
+              </Link>
+            </>
           ) : null}
         </nav>
       </div>

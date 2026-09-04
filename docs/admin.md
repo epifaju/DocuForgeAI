@@ -6,7 +6,7 @@ Opérations courantes après installation — Phase 21.
 
 | Rôle | Capacités principales |
 |------|------------------------|
-| **ADMIN** | Tout : templates, users (via API), audit, batches, email, settings futurs |
+| **ADMIN** | Tout : templates, users, settings, audit, batches, email |
 | **EDITOR** | Templates, génération, batches, email, audit |
 | **USER** | Génération, documents, email (selon droits API) |
 | **VIEWER** | Lecture seule (templates/documents) |
@@ -75,3 +75,12 @@ Windows : `scripts/backup.ps1`, `restore.ps1`, `verify-backup.ps1`.
 
 - UI `/users` — creer un utilisateur, activer/desactiver
 - API `GET/POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`
+
+## Settings societe (ADMIN)
+
+- UI `/settings` (sections `/settings/company`, `/ai`, `/email` ; `/settings/users` → `/users`)
+- API `GET/PUT /api/v1/admin/settings`
+- Nom societe editable ; identifiant de connexion en lecture seule
+- Toggle IA par societe (en plus de `AI_ENABLED` plateforme)
+- Expediteur email override (sinon `SMTP_FROM`)
+- Audit `SETTINGS_CHANGED`

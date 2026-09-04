@@ -10,6 +10,7 @@ import { DocumentNewVersionPage } from "@/pages/DocumentNewVersionPage";
 import { DocumentsPage } from "@/pages/DocumentsPage";
 import { FormPage } from "@/pages/FormPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 import { TemplatesPage } from "@/pages/TemplatesPage";
 import { UsersPage } from "@/pages/UsersPage";
 
@@ -92,6 +93,46 @@ export default function App() {
         element={
           <Protected>
             <UsersPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <Protected>
+            <Navigate to="/settings/company" replace />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings/company"
+        element={
+          <Protected>
+            <SettingsPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings/ai"
+        element={
+          <Protected>
+            <SettingsPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings/email"
+        element={
+          <Protected>
+            <SettingsPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings/users"
+        element={
+          <Protected>
+            <SettingsPage />
           </Protected>
         }
       />

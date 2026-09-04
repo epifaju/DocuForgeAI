@@ -123,5 +123,14 @@ class SchemaMigrationTest {
                 Integer.class
         );
         assertThat(emailTables).isEqualTo(1);
+
+        Integer settingsTables = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'application_settings'
+                """,
+                Integer.class
+        );
+        assertThat(settingsTables).isEqualTo(1);
     }
 }

@@ -23,7 +23,7 @@ export function DocumentNewVersionPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-4xl px-6 py-10">
       <AppHeader subtitle="Nouvelle version — le document d'origine reste inchange." />
       <p className="mb-4 text-sm">
         <Link to={`/documents/${id}`} className="text-[var(--brand)] underline">

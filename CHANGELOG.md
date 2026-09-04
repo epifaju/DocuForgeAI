@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Settings societe (ADMIN) : `GET/PUT /api/v1/admin/settings`, table `application_settings`, UI `/settings/*`, audit `SETTINGS_CHANGED`
+- Formulaire dynamique dense : sections auto (préfixe de clé), grille 2 colonnes, barre d'actions sticky, ancre erreurs
 - Phase 9 — DOCX Engine: DocumentGenerator, generate/preview/download, status GENERATED
 - Phase 8 — Dynamic Forms: form-schema API, validate (HTTP 422), React form renderer
 - Phase 7 — Variable Parser: DOCX {{variable}} detection, GET/PUT variables API

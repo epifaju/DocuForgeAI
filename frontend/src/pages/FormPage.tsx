@@ -15,7 +15,7 @@ export function FormPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-4xl px-6 py-10">
       <AppHeader subtitle="Remplissez le formulaire dynamique pour generer un document." />
       <div className="mt-2">
         {query.isLoading ? <p>Chargement du schema…</p> : null}

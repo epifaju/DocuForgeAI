@@ -5,6 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { deleteMyAccount, exportMyData, purgeRetention } from "@/api/settings";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+
+type ConfirmKind = "purge" | "delete";
 
 export function PrivacyPage() {
   const { t } = useTranslation();
@@ -12,6 +15,7 @@ export function PrivacyPage() {
   const navigate = useNavigate();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmKind | null>(null);
 
   const exportMut = useMutation({
     mutationFn: async () => {
@@ -30,17 +34,29 @@ export function PrivacyPage() {
   const deleteMut = useMutation({
     mutationFn: () => deleteMyAccount(token!),
     onSuccess: () => {
+      setConfirm(null);
       logout();
       navigate("/login", { replace: true });
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      setConfirm(null);
+      setError(err.message);
+    },
   });
 
   const purgeMut = useMutation({
     mutationFn: () => purgeRetention(token!),
-    onSuccess: (res) => setMessage(t("privacy.purgeDone", { count: res.deleted })),
-    onError: (err: Error) => setError(err.message),
+    onSuccess: (res) => {
+      setConfirm(null);
+      setMessage(t("privacy.purgeDone", { count: res.deleted }));
+    },
+    onError: (err: Error) => {
+      setConfirm(null);
+      setError(err.message);
+    },
   });
+
+  const pending = purgeMut.isPending || deleteMut.isPending;
 
   return (
     <AppShell title={t("privacy.title")} description={t("privacy.description")} width="narrow">
@@ -71,10 +87,9 @@ export function PrivacyPage() {
               className="mt-3 rounded-xl border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-60"
               disabled={purgeMut.isPending}
               onClick={() => {
-                if (!window.confirm(t("privacy.purgeConfirm"))) return;
                 setError(null);
                 setMessage(null);
-                purgeMut.mutate();
+                setConfirm("purge");
               }}
             >
               {purgeMut.isPending ? t("common.loading") : t("privacy.purgeAction")}
@@ -90,10 +105,9 @@ export function PrivacyPage() {
             className="mt-3 rounded-xl bg-[var(--danger)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
             disabled={deleteMut.isPending}
             onClick={() => {
-              if (!window.confirm(t("privacy.deleteConfirm"))) return;
               setError(null);
               setMessage(null);
-              deleteMut.mutate();
+              setConfirm("delete");
             }}
           >
             {deleteMut.isPending ? t("common.loading") : t("privacy.deleteAction")}
@@ -103,6 +117,29 @@ export function PrivacyPage() {
         {message ? <p className="text-sm text-[var(--brand)]">{message}</p> : null}
         {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
       </div>
+
+      <ConfirmDialog
+        open={confirm === "purge"}
+        title={t("privacy.purgeTitle")}
+        body={t("privacy.purgeConfirm")}
+        confirmLabel={pending ? t("common.loading") : t("privacy.purgeAction")}
+        cancelLabel={t("common.cancel")}
+        pending={pending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => purgeMut.mutate()}
+      />
+
+      <ConfirmDialog
+        open={confirm === "delete"}
+        title={t("privacy.deleteTitle")}
+        body={t("privacy.deleteConfirm")}
+        confirmLabel={pending ? t("common.loading") : t("privacy.deleteAction")}
+        cancelLabel={t("common.cancel")}
+        pending={pending}
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => deleteMut.mutate()}
+      />
     </AppShell>
   );
 }

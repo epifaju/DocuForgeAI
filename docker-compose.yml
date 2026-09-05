@@ -123,12 +123,23 @@ services:
       ANTIVIRUS_ENABLED: ${ANTIVIRUS_ENABLED:-false}
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
       CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-10000}
       RATE_LIMIT_LOGIN_PER_MINUTE: ${RATE_LIMIT_LOGIN_PER_MINUTE:-10}
       RATE_LIMIT_AI_PER_MINUTE: ${RATE_LIMIT_AI_PER_MINUTE:-20}
       DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Europe/Paris}
       TZ: ${DEFAULT_TIMEZONE:-Europe/Paris}
+      DOCUFORGE_BOOTSTRAP_ENABLED: ${DOCUFORGE_BOOTSTRAP_ENABLED:-true}
+      DOCUFORGE_BOOTSTRAP_COMPANY_NAME: ${DOCUFORGE_BOOTSTRAP_COMPANY_NAME:-DocuForge Demo}
+      DOCUFORGE_BOOTSTRAP_COMPANY_IDENTIFIER: ${DOCUFORGE_BOOTSTRAP_COMPANY_IDENTIFIER:-demo}
+      DOCUFORGE_BOOTSTRAP_ADMIN_EMAIL: ${DOCUFORGE_BOOTSTRAP_ADMIN_EMAIL:-admin@demo.local}
+      DOCUFORGE_BOOTSTRAP_ADMIN_PASSWORD: ${DOCUFORGE_BOOTSTRAP_ADMIN_PASSWORD:-changeme_admin_dev_only}
+      DOCUFORGE_BOOTSTRAP_ADMIN_FIRST_NAME: ${DOCUFORGE_BOOTSTRAP_ADMIN_FIRST_NAME:-Admin}
+      DOCUFORGE_BOOTSTRAP_ADMIN_LAST_NAME: ${DOCUFORGE_BOOTSTRAP_ADMIN_LAST_NAME:-Demo}
     ports:
       - "${BACKEND_PORT:-18081}:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.docuforge-backend.loadbalancer.server.port=8080"
     volumes:
       - ./storage:/storage
     healthcheck:
@@ -160,6 +171,19 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.docuforge.rule=Host(`${DOCUFORGE_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.docuforge.entrypoints=websecure"
+      - "traefik.http.routers.docuforge.tls=true"
+      - "traefik.http.routers.docuforge.tls.certresolver=${TRAEFIK_CERT_RESOLVER-le}"
+      - "traefik.http.routers.docuforge.service=docuforge-frontend"
+      - "traefik.http.services.docuforge-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.docuforge-http.rule=Host(`${DOCUFORGE_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.docuforge-http.entrypoints=web"
+      - "traefik.http.routers.docuforge-http.middlewares=docuforge-https-redirect"
+      - "traefik.http.middlewares.docuforge-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.docuforge-https-redirect.redirectscheme.permanent=true"
     networks:
       - docuforge
 
@@ -238,12 +262,24 @@ services:
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=docuforge-network"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:-admin@example.com}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
       - "--ping=true"
     ports:
       - "${TRAEFIK_HTTP_PORT:-80}:80"
+      - "${TRAEFIK_HTTPS_PORT:-443}:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+      - ./infrastructure/traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./certs:/certs:ro
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 15s
@@ -259,6 +295,7 @@ volumes:
   redis_data:
   minio_data:
   n8n_data:
+  traefik_letsencrypt:
 
 networks:
   docuforge:

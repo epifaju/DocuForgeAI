@@ -7,11 +7,12 @@ import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
 import { isBlank } from "@/lib/formValidation";
 
-type Section = "company" | "ai" | "email" | "users";
+type Section = "company" | "ai" | "email" | "privacy" | "users";
 
 function sectionFromPath(pathname: string): Section {
   if (pathname.endsWith("/ai")) return "ai";
   if (pathname.endsWith("/email")) return "email";
+  if (pathname.endsWith("/privacy")) return "privacy";
   if (pathname.endsWith("/users")) return "users";
   return "company";
 }
@@ -25,6 +26,7 @@ export function SettingsPage() {
   const [name, setName] = useState("");
   const [companyAi, setCompanyAi] = useState(true);
   const [fromAddress, setFromAddress] = useState("");
+  const [retentionDays, setRetentionDays] = useState(365);
   const [message, setMessage] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export function SettingsPage() {
     setName(query.data.company.name);
     setCompanyAi(query.data.ai.companyEnabled);
     setFromAddress(query.data.email.fromAddress ?? "");
+    setRetentionDays(query.data.privacy?.retentionDays ?? 365);
   }, [query.data]);
 
   const save = useMutation({
@@ -47,6 +50,7 @@ export function SettingsPage() {
         company: { name: name.trim() },
         ai: { companyEnabled: companyAi },
         email: { fromAddress: fromAddress.trim() },
+        privacy: { retentionDays },
       }),
     onSuccess: () => {
       setMessage(t("settings.saved"));
@@ -91,6 +95,12 @@ export function SettingsPage() {
         </SectionLink>
         <SectionLink to="/settings/email" active={section === "email"}>
           {t("settings.email")}
+        </SectionLink>
+        <SectionLink to="/settings/privacy" active={section === "privacy"}>
+          {t("settings.privacy")}
+        </SectionLink>
+        <SectionLink to="/privacy" active={false}>
+          {t("settings.myData")}
         </SectionLink>
         <SectionLink to="/users" active={false}>
           {t("settings.usersLink")}
@@ -187,6 +197,24 @@ export function SettingsPage() {
                 />
               </label>
               <p className="text-xs text-[var(--muted)]">{t("settings.fromHint")}</p>
+            </div>
+          ) : null}
+
+          {section === "privacy" ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-[var(--brand-ink)]">{t("settings.privacyTitle")}</p>
+              <p className="text-sm text-[var(--muted)]">{t("settings.privacyHint")}</p>
+              <label className="block text-sm">
+                {t("settings.retentionDays")}
+                <input
+                  type="number"
+                  min={30}
+                  max={3650}
+                  className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+                  value={retentionDays}
+                  onChange={(e) => setRetentionDays(Number(e.target.value) || 365)}
+                />
+              </label>
             </div>
           ) : null}
 

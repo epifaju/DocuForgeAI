@@ -10,13 +10,17 @@ import { DocumentNewVersionPage } from "@/pages/DocumentNewVersionPage";
 import { DocumentsPage } from "@/pages/DocumentsPage";
 import { FormPage } from "@/pages/FormPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
+import { PrivacyPage } from "@/pages/PrivacyPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TemplatesPage } from "@/pages/TemplatesPage";
 import { UsersPage } from "@/pages/UsersPage";
 import { UserDetailPage } from "@/pages/UserDetailPage";
 
 function Protected({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
+  const { token, ready } = useAuth();
+  if (!ready) return null;
   if (!token) return <Navigate to="/login" replace />;
   return children;
 }
@@ -25,6 +29,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/dashboard"
         element={
@@ -134,6 +140,22 @@ export default function App() {
         element={
           <Protected>
             <SettingsPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings/privacy"
+        element={
+          <Protected>
+            <SettingsPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/privacy"
+        element={
+          <Protected>
+            <PrivacyPage />
           </Protected>
         }
       />

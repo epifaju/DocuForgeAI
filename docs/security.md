@@ -1,15 +1,46 @@
 # Sécurité DocuForge AI
 
-Références PRD : §§16, §34, §38, §75, §90–91. Phase 18.
+Références PRD : §§16, §34, §38, §75, §90–91. Phase 18 + U0.
 
-## Auth / JWT
+## Auth / JWT + cookies (U1)
 
 - Login multi-tenant (`companyIdentifier` + email + password).
 - Access JWT HS256 (`type=access`), refresh opaque hashé en base (rotation à chaque refresh).
-- Durées par défaut : access **15 min**, refresh **7 jours** (`JWT_ACCESS_EXPIRATION` / `JWT_REFRESH_EXPIRATION`).
-- UI : stockage access + refresh ; renouvellement **proactif** avant expiration et **retry** sur `401` via `/api/v1/auth/refresh` (une seule requête concurrente).
-- Endpoints protégés sauf `login`, `refresh`, health, OpenAPI, ping.
-- Secrets : `JWT_SECRET` (≥ 32 octets), jamais loggé ni mis dans `audit_logs.metadata`.
+- **Cookies httpOnly** (`df_access`, `df_refresh`) lorsque `AUTH_COOKIES_ENABLED=true` — le SPA n’écrit plus les tokens dans `localStorage` (Bearer en mémoire + cookie).
+- `SameSite=Lax` ; `Secure` forcé si `APP_ENV=production` ou `AUTH_COOKIE_SECURE=true`.
+- Fallback API : header `Authorization: Bearer` toujours accepté.
+- Reset MDP : `POST /api/v1/auth/forgot-password` + `reset-password` (email SMTP).
+- Durées par défaut : access **15 min**, refresh **7 jours**.
+
+## Privacy / RGPD minimal (U1)
+
+- Rétention sociète : setting `gdpr.retentionDays` (UI Paramètres → Confidentialité).
+- `GET /api/v1/privacy/export` — ZIP profil + documents de l’utilisateur.
+- `DELETE /api/v1/privacy/me` — anonymisation compte + suppression docs personnels.
+- `POST /api/v1/privacy/purge` (ADMIN) — purge documents plus anciens que la rétention.
+- `DELETE /api/v1/documents/{id}` — suppression document (auteur ou admin).
+
+## Production safety (U0)
+
+Quand `APP_ENV=production` (ou `prod`), `ProductionSafetyValidator` refuse le démarrage si :
+
+- `JWT_SECRET` manquant, moins de 32 caractères, ou placeholder `changeme*`
+- mot de passe Postgres placeholder `changeme*`
+- `DOCUFORGE_BOOTSTRAP_ENABLED=true`
+
+Scripts :
+
+| Script | Rôle |
+|--------|------|
+| `scripts/secure-env.* -Prod` / `--prod` | Génère secrets + `APP_ENV=production` + bootstrap off + antivirus on |
+| `scripts/verify-prod.*` | Checklist `.env` (TLS, secrets, antivirus) |
+
+## TLS / Traefik (profile `proxy`)
+
+- Entrypoints `:80` → redirect HTTPS, `:443` TLS.
+- Mode `TLS_MODE=acme` : Let’s Encrypt (`ACME_EMAIL`, resolver `le`).
+- Mode `TLS_MODE=file` : `certs/fullchain.pem` + `privkey.pem` + `docker-compose.tls-file.yml`.
+- Override prod : `docker-compose.prod.yml` (pas de ports host app ; accès via Traefik).
 
 ## Uploads (§34)
 
@@ -17,7 +48,9 @@ Références PRD : §§16, §34, §38, §75, §90–91. Phase 18.
 - Validation extension + MIME + taille (`docuforge.storage.*` / multipart).
 - Rejet path traversal (`..`, `/`, `\`, null byte) via `StoragePathGuard`.
 - Fichiers hors webroot (`STORAGE_ROOT`).
-- Scan antivirus optionnel **ClamAV** (`ANTIVIRUS_ENABLED=true`, profile compose `antivirus`).
+- Scan antivirus **ClamAV** (`ANTIVIRUS_ENABLED=true`, profile `antivirus` + `docker-compose.antivirus.yml`).
+  - Malware → `422 MALWARE_DETECTED`
+  - ClamAV down → `503 ANTIVIRUS_UNAVAILABLE` (fail-closed)
 
 ## Rate limiting (§38)
 
@@ -48,10 +81,11 @@ Toutes les lectures/écritures métier filtrent par `company_id` du JWT. Un acc�
 
 ## Tests §90
 
-`SecurityHardeningTest` + `AuthSecurityTest` + `LocalStorageProviderTest` couvrent :
+`SecurityHardeningTest` + `AuthSecurityTest` + `LocalStorageProviderTest` + `ProductionSafetyValidatorTest` couvrent :
 
 - API non authentifiée / mauvais rôle
 - path traversal / MIME invalide / upload trop gros
 - JWT invalide / expiré
 - accès cross-company
 - rate limit login
+- refus démarrage prod avec secrets faibles

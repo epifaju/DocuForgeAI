@@ -10,6 +10,11 @@
 !.env.*.example
 *.pem
 *.key
+certs/fullchain.pem
+certs/privkey.pem
+certs/*.pem
+!certs/README.md
+infrastructure/traefik/dynamic/tls.yml
 *.p12
 *.pfx
 *.jks

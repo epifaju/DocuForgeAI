@@ -50,7 +50,7 @@ UI : http://localhost:5174
 API : http://localhost:18081  
 Mailpit : http://localhost:8028  
 
-Désactiver le bootstrap en production : `DOCUFORGE_BOOTSTRAP_ENABLED=false` après création du premier admin.
+Désactiver le bootstrap en production : `DOCUFORGE_BOOTSTRAP_ENABLED=false` après création du premier admin. Les variables `DOCUFORGE_BOOTSTRAP_*` sont injectées dans le conteneur backend via Compose.
 
 ## Secrets à changer
 
@@ -82,8 +82,9 @@ Ne jamais committer `.env` (voir `.gitignore`). Le mot de passe bootstrap ne s�
 ## Profils optionnels
 
 ```bash
-# Antivirus ClamAV
-ANTIVIRUS_ENABLED=true docker compose --profile antivirus up -d
+# Antivirus ClamAV (attendre healthy ~2 min au premier démarrage)
+ANTIVIRUS_ENABLED=true docker compose -f docker-compose.yml -f docker-compose.antivirus.yml \
+  --profile antivirus up -d
 
 # Redis / MinIO / Traefik / n8n — voir docker-compose.yml (profiles)
 ```
@@ -91,6 +92,44 @@ ANTIVIRUS_ENABLED=true docker compose --profile antivirus up -d
 ## Templates démo
 
 Voir [`templates/demo/`](../templates/demo/) et [`template-guide.md`](./template-guide.md).
+
+## Déploiement HTTPS (U0 / production-like)
+
+Parcours recommandé après création du premier admin :
+
+```bash
+# 1) Secrets + flags prod
+./scripts/secure-env.sh --prod --show          # ou secure-env.ps1 -Prod -Show
+
+# 2) Domaine + URL
+# Éditer .env :
+#   DOCUFORGE_DOMAIN=docs.example.com
+#   APP_BASE_URL=https://docs.example.com
+#   TLS_MODE=acme | file
+#   ACME_EMAIL=you@example.com   # si TLS_MODE=acme
+
+# 3) Vérification
+./scripts/verify-prod.sh                       # ou verify-prod.ps1
+
+# 4) Stack (ports host retirés ; entrée via Traefik 80/443)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  -f docker-compose.antivirus.yml \
+  --profile antivirus --profile proxy up -d
+```
+
+**TLS fichiers (LAN / on-prem)** :
+
+```bash
+./scripts/gen-dev-certs.sh docs.local   # ou gen-dev-certs.ps1
+# .env : TLS_MODE=file , TRAEFIK_CERT_RESOLVER= (vide)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  -f docker-compose.antivirus.yml -f docker-compose.tls-file.yml \
+  --profile antivirus --profile proxy up -d
+```
+
+**Premier admin en prod** : démarrer une fois avec `DOCUFORGE_BOOTSTRAP_ENABLED=true` + mots de passe forts, se connecter, puis repasser à `false` et `docker compose up -d --force-recreate backend`. Avec `APP_ENV=production`, le backend **refuse** de démarrer si secrets faibles ou bootstrap encore activé.
+
+L’UI derrière Traefik proxifie `/api` via nginx frontend (same-origin). Voir aussi [`security.md`](./security.md).
 
 ## Vérifications post-install
 

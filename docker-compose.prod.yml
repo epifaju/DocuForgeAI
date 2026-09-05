@@ -1,0 +1,28 @@
+# Production override — Phase U0
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     --profile antivirus --profile proxy up -d
+#
+# Prerequisites: strong secrets (scripts/secure-env.* -Prod), first admin already created
+# (or temporarily set DOCUFORGE_BOOTSTRAP_ENABLED=true for the very first boot only).
+
+services:
+  postgres:
+    ports: !reset []
+
+  backend:
+    ports: !reset []
+    environment:
+      APP_ENV: production
+      SPRING_PROFILES_ACTIVE: docker,prod
+      DOCUFORGE_BOOTSTRAP_ENABLED: ${DOCUFORGE_BOOTSTRAP_ENABLED:-false}
+      APP_BASE_URL: ${APP_BASE_URL:-https://localhost}
+
+  frontend:
+    ports: !reset []
+
+  mailpit:
+    ports: !reset []
+
+  ollama:
+    ports: !reset []

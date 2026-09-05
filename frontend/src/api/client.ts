@@ -29,7 +29,9 @@ export function acceptLanguage(): string {
 function isAuthPublicPath(path: string): boolean {
   return (
     path.startsWith("/api/v1/auth/login") ||
-    path.startsWith("/api/v1/auth/refresh")
+    path.startsWith("/api/v1/auth/refresh") ||
+    path.startsWith("/api/v1/auth/forgot-password") ||
+    path.startsWith("/api/v1/auth/reset-password")
   );
 }
 
@@ -63,7 +65,7 @@ export type ApiFetchOptions = RequestInit & {
 };
 
 /**
- * Authenticated fetch with proactive token refresh and one 401 retry.
+ * Authenticated fetch with credentials (httpOnly cookies) + optional Bearer.
  */
 export async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<Response> {
   const { token, skipAuthRefresh, json = true, ...init } = options;
@@ -72,6 +74,7 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
   const send = async (access: string | null | undefined) =>
     fetch(`${API_BASE}${path}`, {
       ...init,
+      credentials: "include",
       headers: {
         ...authHeaders(access, json),
         ...(init.headers ?? {}),
@@ -79,17 +82,13 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
     });
 
   let access = token ?? getAccessToken();
-  if (!skipAuthRefresh && !publicAuth && access) {
+  if (!skipAuthRefresh && !publicAuth) {
     access = (await ensureFreshAccessToken()) ?? access;
   }
 
   let response = await send(access);
 
-  if (
-    response.status === 401 &&
-    !skipAuthRefresh &&
-    !publicAuth
-  ) {
+  if (response.status === 401 && !skipAuthRefresh && !publicAuth) {
     const session = await refreshSession();
     if (session) {
       response = await send(session.accessToken);

@@ -10,6 +10,7 @@ import {
 import { me, type MeResponse, type TokenResponse } from "@/api/auth";
 import {
   ACCESS_SKEW_MS,
+  bootstrapSession,
   clearSession,
   getAccessExpiresAt,
   getAccessToken,
@@ -21,6 +22,7 @@ import {
 
 interface AuthState {
   token: string | null;
+  ready: boolean;
   user: MeResponse | null;
   setSession: (tokens: TokenResponse) => void;
   /** @deprecated Prefer setSession — kept for compatibility. */
@@ -35,11 +37,26 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => getAccessToken());
+  const [ready, setReady] = useState(false);
   const [user, setUser] = useState<MeResponse | null>(null);
 
   useEffect(() => subscribeSession(() => setTokenState(getAccessToken())), []);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const session = await bootstrapSession();
+      if (cancelled) return;
+      setTokenState(session?.accessToken ?? getAccessToken());
+      setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
     if (!token) {
       setUser(null);
       return;
@@ -49,20 +66,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((profile) => {
         if (!cancelled) setUser(profile);
       })
-      .catch(() => {
-        if (!cancelled) {
-          setUser(null);
-          if (!getAccessToken()) {
-            setTokenState(null);
+      .catch(async () => {
+        if (cancelled) return;
+        const session = await refreshSession();
+        if (session) {
+          try {
+            setUser(await me(session.accessToken));
+            return;
+          } catch {
+            /* fall through */
           }
         }
+        setUser(null);
+        clearSession();
+        setTokenState(null);
       });
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, ready]);
 
-  // Proactive refresh before access token expiry.
   useEffect(() => {
     if (!token) return;
 
@@ -112,12 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hasRole = (...wanted: string[]) => wanted.some((r) => roles.includes(r));
     return {
       token,
+      ready,
       user,
       setSession: applySession,
       setToken: (next) => {
         if (next) {
-          // Legacy: access-only without refresh cannot renew — clear refresh side.
-          localStorage.setItem("docuforge.accessToken", next);
           setTokenState(next);
         } else {
           clearSession();
@@ -130,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canEditTemplates: hasRole("ADMIN", "EDITOR"),
       isAdmin: hasRole("ADMIN"),
     };
-  }, [token, user, applySession, logout]);
+  }, [token, ready, user, applySession, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

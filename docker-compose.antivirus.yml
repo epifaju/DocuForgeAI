@@ -1,0 +1,15 @@
+# When ANTIVIRUS_ENABLED=true, start with:
+#   docker compose -f docker-compose.yml -f docker-compose.antivirus.yml --profile antivirus up -d
+#
+# Ensures backend waits for a healthy ClamAV before accepting traffic.
+
+services:
+  backend:
+    environment:
+      ANTIVIRUS_ENABLED: "true"
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-10000}
+    depends_on:
+      clamav:
+        condition: service_healthy

@@ -1,6 +1,7 @@
 package ai.docuforge.auth.dto;
 
-import jakarta.validation.constraints.NotBlank;
-
-public record LogoutRequest(@NotBlank String refreshToken) {
+/**
+ * Refresh token may come from httpOnly cookie when body is empty.
+ */
+public record LogoutRequest(String refreshToken) {
 }

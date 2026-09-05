@@ -36,9 +36,32 @@ Modifier `.env` (`BACKEND_PORT`, `FRONTEND_PORT`, `POSTGRES_PORT`, …) puis `do
 
 ## Login échoue
 
-- Bootstrap activé ? `DOCUFORGE_BOOTSTRAP_ENABLED=true`  
-- Identifiants : `demo` / `admin@demo.local` / mot de passe `.env`  
+- Bootstrap activé ? `DOCUFORGE_BOOTSTRAP_ENABLED=true` (et variables injectées dans le conteneur)  
+- Identifiants : `demo` / `admin@demo.local` / mot de passe `.env` (`DOCUFORGE_BOOTSTRAP_ADMIN_PASSWORD`)  
 - Rate limit : attendre 1 minute ou redémarrer le backend  
+- Prod : si le backend refuse de démarrer, lire les logs `Production safety` (secrets / bootstrap)
+
+## Backend refuse de démarrer (production)
+
+```text
+Refusing to start: production safety checks failed
+```
+
+Corriger `JWT_SECRET` / `POSTGRES_PASSWORD`, mettre `DOCUFORGE_BOOTSTRAP_ENABLED=false`, puis `docker compose up -d --force-recreate backend`.
+
+## Traefik / HTTPS
+
+- Profile `proxy` actif ? `docker compose --profile proxy ps`  
+- `DOCUFORGE_DOMAIN` doit matcher l’URL du navigateur  
+- ACME : ports 80/443 publics + `ACME_EMAIL` valide  
+- File TLS : `certs/*.pem` + `infrastructure/traefik/dynamic/tls.yml` + `-f docker-compose.tls-file.yml`  
+- Certificat auto-signé : accepter l’exception navigateur (LAN)
+
+## Antivirus / upload rejeté
+
+- `ANTIVIRUS_ENABLED=true` + `--profile antivirus` + `-f docker-compose.antivirus.yml`  
+- Premier démarrage ClamAV : attendre le health (~2 min, signatures)  
+- ClamAV down → HTTP 503 `ANTIVIRUS_UNAVAILABLE`
 
 ## Email invisible
 

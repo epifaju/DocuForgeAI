@@ -1,0 +1,3 @@
+# Traefik dynamic config directory.
+# For Let's Encrypt (default): leave empty (ACME via Traefik command flags).
+# For file TLS: copy tls-file.yml.example to tls.yml and mount ./certs.

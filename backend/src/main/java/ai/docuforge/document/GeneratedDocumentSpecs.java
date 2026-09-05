@@ -2,11 +2,14 @@ package ai.docuforge.document;
 
 import ai.docuforge.domain.document.DocumentStatus;
 import ai.docuforge.domain.document.GeneratedDocument;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import org.hibernate.query.criteria.JpaExpression;
 import org.springframework.data.jpa.domain.Specification;
 
 final class GeneratedDocumentSpecs {
@@ -43,10 +46,15 @@ final class GeneratedDocumentSpecs {
                 predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), createdTo));
             }
             if (q != null && !q.isBlank()) {
-                String pattern = "%" + q.trim().toLowerCase() + "%";
+                String pattern = likePattern(q);
+                // Cast jsonb → text for PostgreSQL lower()/LIKE over form field values.
+                Expression<String> snapshotAsText = cb.lower(
+                        ((JpaExpression<?>) root.get("dataSnapshot")).cast(String.class)
+                );
                 predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("reference")), pattern),
-                        cb.like(cb.lower(root.get("title")), pattern)
+                        cb.like(cb.lower(root.get("reference")), pattern, '\\'),
+                        cb.like(cb.lower(root.get("title")), pattern, '\\'),
+                        cb.like(snapshotAsText, pattern, '\\')
                 ));
             }
 
@@ -58,5 +66,15 @@ final class GeneratedDocumentSpecs {
 
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    /** Escape LIKE wildcards and wrap with {@code %…%} (case-insensitive match via lower()). */
+    static String likePattern(String raw) {
+        String escaped = raw.trim()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+                .toLowerCase(Locale.ROOT);
+        return "%" + escaped + "%";
     }
 }

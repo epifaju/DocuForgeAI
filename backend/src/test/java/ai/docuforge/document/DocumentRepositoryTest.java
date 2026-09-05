@@ -150,6 +150,24 @@ class DocumentRepositoryTest {
     }
 
     @Test
+    void listSearchesFormDataSnapshotNotOnlyTitle() throws Exception {
+        UUID docId = generateDocument(templateId, "Acte divers", "Zebulon");
+
+        mockMvc.perform(get("/api/v1/documents")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                        .param("q", "Zebulon"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.items[0].id").value(docId.toString()));
+
+        mockMvc.perform(get("/api/v1/documents")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                        .param("q", "zebu"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
     void listIsIsolatedByCompany() throws Exception {
         generateDocument(templateId, "Doc A", "Alice");
 

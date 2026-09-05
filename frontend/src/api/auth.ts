@@ -28,3 +28,19 @@ export function login(companyIdentifier: string, email: string, password: string
 export function me(token: string) {
   return apiJson<MeResponse>("/api/v1/auth/me", { token });
 }
+
+export function forgotPassword(companyIdentifier: string, email: string) {
+  return apiJson<null>("/api/v1/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ companyIdentifier, email }),
+    skipAuthRefresh: true,
+  });
+}
+
+export function resetPassword(token: string, newPassword: string) {
+  return apiJson<null>("/api/v1/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+    skipAuthRefresh: true,
+  });
+}

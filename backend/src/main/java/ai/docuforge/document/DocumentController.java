@@ -10,6 +10,7 @@ import ai.docuforge.document.dto.GeneratedDocumentResponse;
 import ai.docuforge.email.DocumentEmailService;
 import ai.docuforge.email.dto.DocumentEmailRequest;
 import ai.docuforge.email.dto.DocumentEmailResponse;
+import ai.docuforge.privacy.GdprService;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.UUID;
@@ -34,13 +35,16 @@ public class DocumentController {
 
     private final DocumentGenerationService documentGenerationService;
     private final DocumentEmailService documentEmailService;
+    private final GdprService gdprService;
 
     public DocumentController(
             DocumentGenerationService documentGenerationService,
-            DocumentEmailService documentEmailService
+            DocumentEmailService documentEmailService,
+            GdprService gdprService
     ) {
         this.documentGenerationService = documentGenerationService;
         this.documentEmailService = documentEmailService;
+        this.gdprService = gdprService;
     }
 
     @GetMapping
@@ -153,5 +157,15 @@ public class DocumentController {
             @Valid @RequestBody DocumentEmailRequest request
     ) {
         return ApiResponse.ok(documentEmailService.send(principal, id, request), "Email envoye");
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','EDITOR','USER')")
+    public ApiResponse<Void> delete(
+            @AuthenticationPrincipal DocuForgePrincipal principal,
+            @PathVariable UUID id
+    ) {
+        gdprService.deleteDocument(principal, id);
+        return ApiResponse.ok(null, "error.privacy.document_deleted");
     }
 }

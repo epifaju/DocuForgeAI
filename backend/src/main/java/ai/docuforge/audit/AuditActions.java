@@ -23,6 +23,12 @@ public final class AuditActions {
     public static final String BATCH_STARTED = "BATCH_STARTED";
     public static final String BATCH_COMPLETED = "BATCH_COMPLETED";
     public static final String SETTINGS_CHANGED = "SETTINGS_CHANGED";
+    public static final String PASSWORD_RESET_REQUESTED = "PASSWORD_RESET_REQUESTED";
+    public static final String PASSWORD_RESET_COMPLETED = "PASSWORD_RESET_COMPLETED";
+    public static final String DATA_EXPORTED = "DATA_EXPORTED";
+    public static final String DATA_PURGED = "DATA_PURGED";
+    public static final String ACCOUNT_DELETED = "ACCOUNT_DELETED";
+    public static final String DOCUMENT_DELETED = "DOCUMENT_DELETED";
 
     private AuditActions() {
     }

@@ -9,6 +9,7 @@ import ai.docuforge.config.AiProperties;
 import ai.docuforge.config.MailProperties;
 import ai.docuforge.domain.company.Company;
 import ai.docuforge.domain.company.CompanyRepository;
+import ai.docuforge.privacy.GdprService;
 import ai.docuforge.settings.ApplicationSettingsService;
 import ai.docuforge.settings.SettingKeys;
 import java.util.LinkedHashMap;
@@ -78,10 +79,18 @@ public class AdminSettingsService {
             applicationSettingsService.put(company.getId(), SettingKeys.EMAIL_FROM, "");
         }
 
+        int retentionDays = request.privacy().retentionDays();
+        applicationSettingsService.put(
+                company.getId(),
+                SettingKeys.DATA_RETENTION_DAYS,
+                String.valueOf(retentionDays)
+        );
+
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("companyNameChanged", !previousName.equals(newName));
         metadata.put("aiCompanyEnabled", companyAiEnabled);
         metadata.put("emailFromUpdated", true);
+        metadata.put("retentionDays", retentionDays);
         auditService.recordSuccess(
                 principal,
                 AuditActions.SETTINGS_CHANGED,
@@ -99,6 +108,17 @@ public class AdminSettingsService {
         String emailFrom = applicationSettingsService
                 .getEmailFrom(company.getId())
                 .orElse(mailProperties.from());
+        int retentionDays = applicationSettingsService
+                .get(company.getId(), SettingKeys.DATA_RETENTION_DAYS)
+                .map(v -> {
+                    try {
+                        return Integer.parseInt(v.trim());
+                    } catch (NumberFormatException ex) {
+                        return GdprService.DEFAULT_RETENTION_DAYS;
+                    }
+                })
+                .filter(d -> d > 0)
+                .orElse(GdprService.DEFAULT_RETENTION_DAYS);
 
         return new AdminSettingsResponse(
                 new AdminSettingsResponse.CompanySettings(
@@ -119,7 +139,8 @@ public class AdminSettingsService {
                         emailFrom,
                         mailProperties.maxAttachmentBytes(),
                         true
-                )
+                ),
+                new AdminSettingsResponse.PrivacySettings(retentionDays)
         );
     }
 

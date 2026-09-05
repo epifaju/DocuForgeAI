@@ -5,7 +5,8 @@ import java.util.UUID;
 public record AdminSettingsResponse(
         CompanySettings company,
         AiSettings ai,
-        EmailSettings email
+        EmailSettings email,
+        PrivacySettings privacy
 ) {
     public record CompanySettings(UUID id, String name, String identifier) {
     }
@@ -26,5 +27,8 @@ public record AdminSettingsResponse(
             long maxAttachmentBytes,
             boolean requireConfirmation
     ) {
+    }
+
+    public record PrivacySettings(int retentionDays) {
     }
 }

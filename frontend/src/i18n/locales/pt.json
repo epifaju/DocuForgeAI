@@ -17,7 +17,8 @@
     "language": "Idioma",
     "fr": "Frances",
     "pt": "Portugues",
-    "navAria": "Navegacao principal"
+    "navAria": "Navegacao principal",
+    "sending": "A enviar…"
   },
   "nav": {
     "dashboard": "Painel",
@@ -41,6 +42,40 @@
     "submit": "Entrar",
     "submitting": "A entrar…",
     "failed": "Nao foi possivel iniciar sessao."
+  },
+  "auth": {
+    "forgotLink": "Palavra-passe esquecida ?",
+    "forgotTitle": "Redefinir palavra-passe",
+    "forgotHint": "Indique a empresa e o email. Sera enviado um link se a conta existir.",
+    "forgotSent": "Se existir uma conta, foi enviado um email.",
+    "forgotFailed": "Pedido impossivel.",
+    "sendResetLink": "Enviar ligacao",
+    "backToLogin": "Voltar ao inicio de sessao",
+    "resetTitle": "Nova palavra-passe",
+    "newPassword": "Nova palavra-passe",
+    "confirmPassword": "Confirmar",
+    "resetSubmit": "Atualizar",
+    "resetOk": "Palavra-passe atualizada. Pode iniciar sessao.",
+    "resetFailed": "Redefinicao impossivel.",
+    "missingToken": "Ligacao invalida (token em falta).",
+    "passwordMismatch": "As palavras-passe nao coincidem."
+  },
+  "privacy": {
+    "title": "Os meus dados",
+    "description": "Exportacao RGPD, limpeza de retencao e eliminacao de conta.",
+    "exportTitle": "Exportar os meus dados",
+    "exportHint": "Descarrega um ZIP (perfil + documentos gerados por si).",
+    "exportAction": "Descarregar exportacao",
+    "exportDone": "Exportacao descarregada.",
+    "purgeTitle": "Limpar documentos expirados",
+    "purgeHint": "Elimina documentos mais antigos do que a retencao da empresa (admin).",
+    "purgeAction": "Executar limpeza",
+    "purgeConfirm": "Limpar documentos expirados agora ?",
+    "purgeDone": "{{count}} documento(s) eliminado(s).",
+    "deleteTitle": "Eliminar a minha conta",
+    "deleteHint": "Anonimiza a conta e elimina os seus documentos. Irreversivel.",
+    "deleteAction": "Eliminar a minha conta",
+    "deleteConfirm": "Confirmar a eliminacao da conta ?"
   },
   "dashboard": {
     "title": "Painel",
@@ -103,9 +138,9 @@
   },
   "documents": {
     "title": "Documentos",
-    "description": "Documentos gerados — pesquisa e filtros.",
+    "description": "Documentos gerados — pesquisa por referencia, titulo ou dados do formulario.",
     "search": "Pesquisa",
-    "searchPlaceholder": "Referencia ou titulo",
+    "searchPlaceholder": "Referencia, titulo, nome ou dados",
     "status": "Estado",
     "template": "Modelo",
     "colReference": "Referencia",
@@ -302,7 +337,12 @@
     "smtpOff": "desativado",
     "fromOverride": "Remetente (substituicao empresa)",
     "fromHint": "Deixe vazio para usar o remetente da plataforma. Confirmacao do utilizador obrigatoria antes do envio.",
-    "saved": "Definicoes guardadas."
+    "saved": "Definicoes guardadas.",
+    "privacy": "Privacidade",
+    "privacyTitle": "Retencao de documentos",
+    "privacyHint": "Documentos mais antigos do que esta duracao podem ser limpos (admin).",
+    "retentionDays": "Retencao (dias)",
+    "myData": "Os meus dados"
   },
   "validation": {
     "required": "Campo obrigatorio",

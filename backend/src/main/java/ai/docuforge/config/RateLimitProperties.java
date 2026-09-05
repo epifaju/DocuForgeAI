@@ -6,6 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record RateLimitProperties(
         boolean enabled,
         int loginPerMinute,
-        int aiPerMinute
+        int aiPerMinute,
+        int forgotPasswordPerMinute
 ) {
+    public RateLimitProperties {
+        if (forgotPasswordPerMinute <= 0) {
+            forgotPasswordPerMinute = 5;
+        }
+    }
 }

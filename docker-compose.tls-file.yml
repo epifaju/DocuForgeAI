@@ -1,0 +1,16 @@
+# On-prem / LAN TLS with mounted certificates (no Let's Encrypt).
+# Usage:
+#   Set TLS_MODE=file and TRAEFIK_CERT_RESOLVER= (empty) in .env
+#   Place certs/fullchain.pem + certs/privkey.pem
+#   Copy infrastructure/traefik/dynamic/tls-file.yml.example → tls.yml
+#   docker compose -f docker-compose.yml -f docker-compose.tls-file.yml --profile proxy up -d
+
+services:
+  frontend:
+    labels:
+      - "traefik.http.routers.docuforge.tls.certresolver="
+
+  traefik:
+    volumes:
+      - ./certs:/certs:ro
+      - ./infrastructure/traefik/dynamic:/etc/traefik/dynamic:ro

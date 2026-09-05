@@ -117,7 +117,8 @@ class AdminSettingsTest {
                 .andExpect(jsonPath("$.data.company.identifier").value("settings-co"))
                 .andExpect(jsonPath("$.data.ai.platformEnabled").value(true))
                 .andExpect(jsonPath("$.data.ai.companyEnabled").value(true))
-                .andExpect(jsonPath("$.data.email.fromAddress").value("platform@docuforge.test"));
+                .andExpect(jsonPath("$.data.email.fromAddress").value("platform@docuforge.test"))
+                .andExpect(jsonPath("$.data.privacy.retentionDays").value(365));
 
         mockMvc.perform(put("/api/v1/admin/settings")
                         .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
@@ -126,14 +127,16 @@ class AdminSettingsTest {
                                 {
                                   "company": { "name": "Settings SARL" },
                                   "ai": { "companyEnabled": false },
-                                  "email": { "fromAddress": "noreply@settings-co.test" }
+                                  "email": { "fromAddress": "noreply@settings-co.test" },
+                                  "privacy": { "retentionDays": 180 }
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.company.name").value("Settings SARL"))
                 .andExpect(jsonPath("$.data.ai.companyEnabled").value(false))
                 .andExpect(jsonPath("$.data.ai.effectivelyEnabled").value(false))
-                .andExpect(jsonPath("$.data.email.fromAddress").value("noreply@settings-co.test"));
+                .andExpect(jsonPath("$.data.email.fromAddress").value("noreply@settings-co.test"))
+                .andExpect(jsonPath("$.data.privacy.retentionDays").value(180));
 
         mockMvc.perform(put("/api/v1/admin/settings")
                         .header(HttpHeaders.AUTHORIZATION, bearer(editorToken))
@@ -142,7 +145,8 @@ class AdminSettingsTest {
                                 {
                                   "company": { "name": "Hack" },
                                   "ai": { "companyEnabled": true },
-                                  "email": { "fromAddress": "x@y.z" }
+                                  "email": { "fromAddress": "x@y.z" },
+                                  "privacy": { "retentionDays": 90 }
                                 }
                                 """))
                 .andExpect(status().isForbidden());

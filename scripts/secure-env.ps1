@@ -1,10 +1,11 @@
 # DocuForge AI — generate strong local secrets into .env
-# Usage: powershell -File .\scripts\secure-env.ps1 [-RotatePostgres] [-Show] [-Force]
+# Usage: powershell -File .\scripts\secure-env.ps1 [-RotatePostgres] [-Show] [-Force] [-Prod]
 
 param(
   [switch]$RotatePostgres,
   [switch]$Show,
-  [switch]$Force
+  [switch]$Force,
+  [switch]$Prod
 )
 
 $ErrorActionPreference = "Stop"
@@ -75,9 +76,16 @@ $pgPass = $null
 Set-EnvValue ".env" "JWT_SECRET" $jwt
 Set-EnvValue ".env" "DOCUFORGE_BOOTSTRAP_ADMIN_PASSWORD" $adminPass
 
-if ($RotatePostgres) {
+if ($Prod -or $RotatePostgres) {
   $pgPass = New-Password 28
   Set-EnvValue ".env" "POSTGRES_PASSWORD" $pgPass
+}
+
+if ($Prod) {
+  Set-EnvValue ".env" "APP_ENV" "production"
+  Set-EnvValue ".env" "DOCUFORGE_BOOTSTRAP_ENABLED" "false"
+  Set-EnvValue ".env" "ANTIVIRUS_ENABLED" "true"
+  Write-Host "Prod flags: APP_ENV=production, bootstrap off, antivirus on"
 }
 
 Write-Host ""
@@ -99,15 +107,17 @@ if ($Show) {
 
 Write-Host ""
 Write-Host "Next steps:"
-Write-Host "  1. docker compose up -d --force-recreate backend"
-Write-Host "  2. Bootstrap password applies only if NO users exist yet."
-Write-Host "     If admin already exists, reset via UI /users or SQL."
-if ($RotatePostgres) {
-  Write-Host "  3. Postgres password changed: ALTER USER or recreate volume:"
-  Write-Host "       docker compose down -v"
-  Write-Host "       docker compose up -d"
+if ($Prod) {
+  Write-Host "  1. Set DOCUFORGE_DOMAIN + APP_BASE_URL=https://... and TLS_MODE (acme|file) in .env"
+  Write-Host "  2. ./scripts/verify-prod.ps1"
+  Write-Host "  3. docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile antivirus --profile proxy up -d"
+  Write-Host "  First install only: temporarily DOCUFORGE_BOOTSTRAP_ENABLED=true, create admin, then false + recreate."
 } else {
-  Write-Host "  3. Postgres password unchanged (add -RotatePostgres to rotate)."
+  Write-Host "  1. docker compose up -d --force-recreate backend"
+  Write-Host "  2. Bootstrap password applies only if NO users exist yet."
+}
+if ($pgPass) {
+  Write-Host "  Postgres password changed: ALTER USER or recreate volume (docker compose down -v)."
 }
 Write-Host ""
 Write-Host "Never commit .env. Store secrets in a password manager."

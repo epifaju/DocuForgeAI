@@ -59,3 +59,8 @@ jobs:
         run: |
           docker compose -f docker-compose.yml config >/dev/null
           docker compose -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+            -f docker-compose.antivirus.yml --profile antivirus --profile proxy config >/dev/null
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+            -f docker-compose.antivirus.yml -f docker-compose.tls-file.yml \
+            --profile antivirus --profile proxy config >/dev/null

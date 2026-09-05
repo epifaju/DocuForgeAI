@@ -66,13 +66,13 @@ public class ClamAvAntivirusScanner implements AntivirusScanner {
                     throw new StorageException(
                             "MALWARE_DETECTED",
                             HttpStatus.UNPROCESSABLE_ENTITY,
-                            "Fichier rejete par l'antivirus."
+                            "error.antivirus.malware"
                     );
                 }
                 throw new StorageException(
                         "ANTIVIRUS_ERROR",
                         HttpStatus.SERVICE_UNAVAILABLE,
-                        "Reponse antivirus inattendue."
+                        "error.antivirus.unexpected"
                 );
             }
         } catch (StorageException ex) {
@@ -82,7 +82,7 @@ public class ClamAvAntivirusScanner implements AntivirusScanner {
             throw new StorageException(
                     "ANTIVIRUS_UNAVAILABLE",
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "Service antivirus indisponible.",
+                    "error.antivirus.unavailable",
                     ex
             );
         }

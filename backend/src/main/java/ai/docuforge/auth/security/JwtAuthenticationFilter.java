@@ -1,5 +1,6 @@
 package ai.docuforge.auth.security;
 
+import ai.docuforge.auth.AuthCookieService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,9 +18,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final AuthCookieService authCookieService;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, AuthCookieService authCookieService) {
         this.jwtService = jwtService;
+        this.authCookieService = authCookieService;
     }
 
     @Override
@@ -28,29 +31,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        String token = null;
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7).trim();
-            if (!token.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null) {
-                try {
-                    JwtService.AccessTokenClaims claims = jwtService.parseAccessToken(token);
-                    DocuForgePrincipal principal = new DocuForgePrincipal(
-                            claims.userId(),
-                            claims.companyId(),
-                            claims.companyIdentifier(),
-                            claims.email(),
-                            "",
-                            true,
-                            new LinkedHashSet<>(claims.roles())
-                    );
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                } catch (JwtAuthenticationException ex) {
-                    SecurityContextHolder.clearContext();
-                    request.setAttribute("docuforge.auth.error", ex.getMessage());
-                }
+            token = header.substring(7).trim();
+        }
+        if ((token == null || token.isEmpty()) && authCookieService.enabled()) {
+            token = authCookieService.readAccess(request).orElse(null);
+        }
+        if (token != null && !token.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                JwtService.AccessTokenClaims claims = jwtService.parseAccessToken(token);
+                DocuForgePrincipal principal = new DocuForgePrincipal(
+                        claims.userId(),
+                        claims.companyId(),
+                        claims.companyIdentifier(),
+                        claims.email(),
+                        "",
+                        true,
+                        new LinkedHashSet<>(claims.roles())
+                );
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (JwtAuthenticationException ex) {
+                SecurityContextHolder.clearContext();
+                request.setAttribute("docuforge.auth.error", ex.getMessage());
             }
         }
         filterChain.doFilter(request, response);

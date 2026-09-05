@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { login } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
@@ -121,6 +121,11 @@ export function LoginPage() {
             >
               {loading ? t("login.submitting") : t("login.submit")}
             </button>
+            <p className="text-center text-sm">
+              <Link to="/forgot-password" className="text-[var(--brand)] underline">
+                {t("auth.forgotLink")}
+              </Link>
+            </p>
           </form>
         </div>
       </main>

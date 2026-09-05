@@ -30,7 +30,7 @@ Formulaire : `GET /template-versions/{id}/form-schema`, `POST …/validate`
 |---------|--------|
 | POST | `/documents/generate` |
 | POST | `/documents/preview` |
-| GET | `/documents`, `/documents/{id}` |
+| GET | `/documents`, `/documents/{id}` | Liste : `q` cherche aussi dans `data_snapshot` (noms / champs formulaire) |
 | GET | `/documents/{id}/download/docx` \| `/pdf` (`?preview=true`) |
 | POST | `/documents/{id}/new-version` |
 | GET | `/documents/{id}/versions` |

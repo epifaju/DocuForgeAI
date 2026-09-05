@@ -1,0 +1,12 @@
+# Copy to tls.yml when TLS_MODE=file (on-prem certificates).
+# Requires ./certs/fullchain.pem and ./certs/privkey.pem on the host.
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/fullchain.pem
+        keyFile: /certs/privkey.pem
+  certificates:
+    - certFile: /certs/fullchain.pem
+      keyFile: /certs/privkey.pem

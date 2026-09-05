@@ -122,7 +122,10 @@ public class ErrorMessages {
             Map.entry("Montant invalide.", "error.form.amount"),
             Map.entry("Date ISO invalide (yyyy-MM-dd).", "error.form.date"),
             Map.entry("Date-heure ISO invalide.", "error.form.datetime"),
-            Map.entry("Selection multiple invalide.", "error.form.multiselect")
+            Map.entry("Selection multiple invalide.", "error.form.multiselect"),
+            Map.entry("Fichier rejete par l'antivirus.", "error.antivirus.malware"),
+            Map.entry("Reponse antivirus inattendue.", "error.antivirus.unexpected"),
+            Map.entry("Service antivirus indisponible.", "error.antivirus.unavailable")
     );
 
     public ErrorMessages(MessageSource messageSource) {

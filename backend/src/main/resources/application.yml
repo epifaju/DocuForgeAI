@@ -90,6 +90,14 @@ docuforge:
     secret: ${JWT_SECRET:changeme_generate_a_long_random_secret_at_least_32_chars}
     access-expiration-seconds: ${JWT_ACCESS_EXPIRATION:900}
     refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION:604800}
+  auth:
+    cookies:
+      enabled: ${AUTH_COOKIES_ENABLED:true}
+      access-cookie-name: ${AUTH_ACCESS_COOKIE:df_access}
+      refresh-cookie-name: ${AUTH_REFRESH_COOKIE:df_refresh}
+      same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+      secure: ${AUTH_COOKIE_SECURE:false}
+      path: /
   bootstrap:
     enabled: ${DOCUFORGE_BOOTSTRAP_ENABLED:true}
     company-name: ${DOCUFORGE_BOOTSTRAP_COMPANY_NAME:DocuForge Demo}
@@ -118,10 +126,11 @@ docuforge:
     enabled: ${SMTP_ENABLED:true}
     from: ${SMTP_FROM:noreply@docuforge.local}
     max-attachment-bytes: ${SMTP_MAX_ATTACHMENT_BYTES:26214400}
-  rate-limit:
-    enabled: ${RATE_LIMIT_ENABLED:true}
-    login-per-minute: ${RATE_LIMIT_LOGIN_PER_MINUTE:10}
-    ai-per-minute: ${RATE_LIMIT_AI_PER_MINUTE:20}
+    rate-limit:
+      enabled: ${RATE_LIMIT_ENABLED:true}
+      login-per-minute: ${RATE_LIMIT_LOGIN_PER_MINUTE:10}
+      ai-per-minute: ${RATE_LIMIT_AI_PER_MINUTE:20}
+      forgot-password-per-minute: ${RATE_LIMIT_FORGOT_PASSWORD_PER_MINUTE:5}
   antivirus:
     enabled: ${ANTIVIRUS_ENABLED:false}
     host: ${CLAMAV_HOST:127.0.0.1}

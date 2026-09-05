@@ -17,7 +17,8 @@
     "language": "Langue",
     "fr": "Francais",
     "pt": "Portugais",
-    "navAria": "Navigation principale"
+    "navAria": "Navigation principale",
+    "sending": "Envoi…"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -41,6 +42,40 @@
     "submit": "Se connecter",
     "submitting": "Connexion…",
     "failed": "Connexion impossible."
+  },
+  "auth": {
+    "forgotLink": "Mot de passe oublie ?",
+    "forgotTitle": "Reinitialiser le mot de passe",
+    "forgotHint": "Indiquez votre societe et email. Un lien sera envoye si le compte existe.",
+    "forgotSent": "Si un compte existe, un email a ete envoye.",
+    "forgotFailed": "Demande impossible.",
+    "sendResetLink": "Envoyer le lien",
+    "backToLogin": "Retour a la connexion",
+    "resetTitle": "Nouveau mot de passe",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer",
+    "resetSubmit": "Mettre a jour",
+    "resetOk": "Mot de passe mis a jour. Vous pouvez vous connecter.",
+    "resetFailed": "Reinitialisation impossible.",
+    "missingToken": "Lien invalide (jeton manquant).",
+    "passwordMismatch": "Les mots de passe ne correspondent pas."
+  },
+  "privacy": {
+    "title": "Mes donnees",
+    "description": "Export RGPD, purge de retention et suppression de compte.",
+    "exportTitle": "Exporter mes donnees",
+    "exportHint": "Telecharge un ZIP (profil + documents generes par vous).",
+    "exportAction": "Telecharger l'export",
+    "exportDone": "Export telecharge.",
+    "purgeTitle": "Purger les documents expires",
+    "purgeHint": "Supprime les documents plus anciens que la retention societe (admin).",
+    "purgeAction": "Lancer la purge",
+    "purgeConfirm": "Purger les documents expires maintenant ?",
+    "purgeDone": "{{count}} document(s) supprime(s).",
+    "deleteTitle": "Supprimer mon compte",
+    "deleteHint": "Anonymise le compte et supprime vos documents. Irreversible.",
+    "deleteAction": "Supprimer mon compte",
+    "deleteConfirm": "Confirmer la suppression du compte ?"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -103,9 +138,9 @@
   },
   "documents": {
     "title": "Documents",
-    "description": "Documents generes — recherche et filtres.",
+    "description": "Documents generes — recherche par reference, titre ou donnees du formulaire.",
     "search": "Recherche",
-    "searchPlaceholder": "Reference ou titre",
+    "searchPlaceholder": "Reference, titre, nom ou donnees",
     "status": "Statut",
     "template": "Template",
     "colReference": "Reference",
@@ -302,7 +337,12 @@
     "smtpOff": "desactive",
     "fromOverride": "Expediteur (override societe)",
     "fromHint": "Laisser vide pour reprendre l'expediteur plateforme. Confirmation utilisateur obligatoire avant envoi.",
-    "saved": "Parametres enregistres."
+    "saved": "Parametres enregistres.",
+    "privacy": "Confidentialite",
+    "privacyTitle": "Retention des documents",
+    "privacyHint": "Les documents plus anciens que cette duree peuvent etre purges (admin).",
+    "retentionDays": "Retention (jours)",
+    "myData": "Mes donnees"
   },
   "validation": {
     "required": "Champ obligatoire",

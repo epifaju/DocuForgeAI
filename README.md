@@ -51,7 +51,7 @@ Guide détaillé : [`docs/installation.md`](./docs/installation.md).
 1. Copier `.env.example` → `.env`  
 2. Générer des secrets forts : `powershell -File .\scripts\secure-env.ps1 -Show` (ou `./scripts/secure-env.sh --show`)  
 3. Ne jamais committer `.env` (couvert par `.gitignore`)  
-4. Hors machine locale : désactiver le bootstrap après création des users  
+4. Hors machine locale : `powershell -File .\scripts\secure-env.ps1 -Prod -Show` puis désactiver le bootstrap après le premier admin ; `.\scripts\verify-prod.ps1`
 
 ## Documentation
 
@@ -62,7 +62,7 @@ Guide détaillé : [`docs/installation.md`](./docs/installation.md).
 | [`docs/template-guide.md`](./docs/template-guide.md) | Modèles DOCX |
 | [`docs/api.md`](./docs/api.md) | Endpoints `/api/v1` |
 | [`docs/architecture.md`](./docs/architecture.md) | Vue d’ensemble |
-| [`docs/security.md`](./docs/security.md) | Durcissement |
+| [`docs/security.md`](./docs/security.md) | Durcissement / U0 TLS & secrets |
 | [`docs/backup.md`](./docs/backup.md) | Backup / restore |
 | [`docs/e2e.md`](./docs/e2e.md) | Playwright |
 | [`docs/troubleshooting.md`](./docs/troubleshooting.md) | Dépannage |
@@ -77,6 +77,9 @@ CI : [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) (`mvn verify`, fro
 |--------|------|
 | `scripts/install.*` | Build + up + health |
 | `scripts/healthcheck.*` | Sonde infra |
+| `scripts/secure-env.*` | Secrets (option `-Prod` / `--prod`) |
+| `scripts/verify-prod.*` | Checklist déploiement U0 |
+| `scripts/gen-dev-certs.*` | Certificats auto-signés (TLS file) |
 | `scripts/backup.*` / `restore.*` / `verify-backup.*` | Sauvegarde |
 
 ## Tests

@@ -69,6 +69,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 writeTooMany(response, request, "error.rate_limit.login");
                 return;
             }
+        } else if ("POST".equalsIgnoreCase(method) && path.equals("/api/v1/auth/forgot-password")) {
+            if (!tryConsume("forgot:" + clientKey(request), properties.forgotPasswordPerMinute())) {
+                writeTooMany(response, request, "error.rate_limit.forgot_password");
+                return;
+            }
         } else if (path.startsWith("/api/v1/ai/") && !"GET".equalsIgnoreCase(method)) {
             if (!tryConsume("ai:" + principalOrIp(request), properties.aiPerMinute())) {
                 writeTooMany(response, request, "error.rate_limit.ai");

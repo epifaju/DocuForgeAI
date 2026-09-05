@@ -41,6 +41,14 @@ public class AdminUserController {
         return ApiResponse.ok(adminUserService.list(principal, page, size));
     }
 
+    @GetMapping("/{id}")
+    public ApiResponse<AdminUserResponse> get(
+            @AuthenticationPrincipal DocuForgePrincipal principal,
+            @PathVariable UUID id
+    ) {
+        return ApiResponse.ok(adminUserService.get(principal, id));
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<AdminUserResponse> create(

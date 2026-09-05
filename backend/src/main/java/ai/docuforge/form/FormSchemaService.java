@@ -12,6 +12,7 @@ import ai.docuforge.form.dto.FormDataValidateResponse;
 import ai.docuforge.form.dto.FormFieldConstraints;
 import ai.docuforge.form.dto.FormFieldSchema;
 import ai.docuforge.form.dto.FormSchemaResponse;
+import ai.docuforge.template.parser.DocxVariableParser;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -72,18 +73,19 @@ public class FormSchemaService {
     }
 
     private FormFieldSchema toField(TemplateVariable variable) {
+        VariableType type = DocxVariableParser.effectiveType(variable.getVariableKey(), variable.getType());
         FormFieldConstraints constraints = constraintsParser.parse(variable.getConfiguration());
-        boolean aiEnabled = constraintsParser.aiEnabled(variable.getConfiguration(), variable.getType());
-        String aiMode = constraintsParser.aiMode(variable.getConfiguration(), variable.getType());
+        boolean aiEnabled = constraintsParser.aiEnabled(variable.getConfiguration(), type);
+        String aiMode = constraintsParser.aiMode(variable.getConfiguration(), type);
         return new FormFieldSchema(
                 variable.getVariableKey(),
                 variable.getLabel(),
-                variable.getType(),
+                type,
                 variable.isRequired(),
                 variable.getDefaultValue(),
                 variable.getPlaceholder(),
                 variable.getDisplayOrder(),
-                componentFor(variable.getType()),
+                componentFor(type),
                 constraints,
                 aiEnabled,
                 aiMode

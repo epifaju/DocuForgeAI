@@ -8,7 +8,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { isBlank, isValidEmail } from "@/lib/formValidation";
 
 export function LoginPage() {
-  const { setToken } = useAuth();
+  const { setSession } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [companyIdentifier, setCompany] = useState("demo");
@@ -32,7 +32,7 @@ export function LoginPage() {
     setError(null);
     try {
       const tokens = await login(companyIdentifier, email, password);
-      setToken(tokens.accessToken);
+      setSession(tokens);
       navigate("/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("login.failed"));

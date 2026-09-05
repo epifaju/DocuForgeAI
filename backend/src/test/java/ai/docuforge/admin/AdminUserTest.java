@@ -98,7 +98,7 @@ class AdminUserTest {
     }
 
     @Test
-    void adminCanCreateListAndUpdateUsers_editorForbidden() throws Exception {
+    void adminCanCreateListGetAndUpdateUsers_editorForbidden() throws Exception {
         mockMvc.perform(get("/api/v1/admin/users")
                         .header(HttpHeaders.AUTHORIZATION, bearer(editorToken)))
                 .andExpect(status().isForbidden());
@@ -130,6 +130,21 @@ class AdminUserTest {
                         .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(3));
+
+        mockMvc.perform(get("/api/v1/admin/users/" + userId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(userId.toString()))
+                .andExpect(jsonPath("$.data.email").value("user@admin-co.test"))
+                .andExpect(jsonPath("$.data.firstName").value("New"));
+
+        mockMvc.perform(get("/api/v1/admin/users/" + userId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(editorToken)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/admin/users/" + UUID.randomUUID())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isNotFound());
 
         mockMvc.perform(put("/api/v1/admin/users/" + userId)
                         .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))

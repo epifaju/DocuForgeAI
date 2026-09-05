@@ -13,6 +13,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TemplatesPage } from "@/pages/TemplatesPage";
 import { UsersPage } from "@/pages/UsersPage";
+import { UserDetailPage } from "@/pages/UserDetailPage";
 
 function Protected({ children }: { children: ReactNode }) {
   const { token } = useAuth();
@@ -93,6 +94,14 @@ export default function App() {
         element={
           <Protected>
             <UsersPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/users/:id"
+        element={
+          <Protected>
+            <UserDetailPage />
           </Protected>
         }
       />

@@ -1,4 +1,4 @@
-import { apiJson, bearerHeaders } from "./client";
+import { apiFetch, apiJson } from "./client";
 import type { PageResponse } from "./types";
 
 export interface BatchJob {
@@ -47,9 +47,10 @@ export async function createBatch(
   if (mapping) {
     form.append("mapping", JSON.stringify(mapping));
   }
-  const response = await fetch("/api/v1/batches", {
+  const response = await apiFetch("/api/v1/batches", {
     method: "POST",
-    headers: bearerHeaders(token),
+    token,
+    json: false,
     body: form,
   });
   const json = await response.json();
@@ -60,8 +61,9 @@ export async function createBatch(
 }
 
 export async function downloadBatchZip(token: string, id: string) {
-  const response = await fetch(`/api/v1/batches/${id}/download`, {
-    headers: bearerHeaders(token),
+  const response = await apiFetch(`/api/v1/batches/${id}/download`, {
+    token,
+    json: false,
   });
   if (!response.ok) throw new Error("ZIP indisponible");
   const blob = await response.blob();

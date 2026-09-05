@@ -1,4 +1,4 @@
-import { apiJson, bearerHeaders } from "./client";
+import { apiFetch, apiJson } from "./client";
 import type { PageResponse, TemplateSummary } from "./types";
 
 export type { TemplateSummary };
@@ -29,11 +29,12 @@ export async function uploadTemplateVersion(
 ) {
   const form = new FormData();
   form.append("file", file);
-  const response = await fetch(
+  const response = await apiFetch(
     `/api/v1/templates/${templateId}/versions?setAsCurrent=${setAsCurrent}`,
     {
       method: "POST",
-      headers: bearerHeaders(token),
+      token,
+      json: false,
       body: form,
     },
   );

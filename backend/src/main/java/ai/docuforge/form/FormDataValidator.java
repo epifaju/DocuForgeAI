@@ -2,7 +2,9 @@ package ai.docuforge.form;
 
 import ai.docuforge.common.api.ErrorResponse.FieldErrorDetail;
 import ai.docuforge.domain.template.TemplateVariable;
+import ai.docuforge.domain.template.VariableType;
 import ai.docuforge.form.dto.FormFieldConstraints;
+import ai.docuforge.template.parser.DocxVariableParser;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -64,6 +66,7 @@ public class FormDataValidator {
             List<FieldErrorDetail> errors
     ) {
         String key = variable.getVariableKey();
+        VariableType type = DocxVariableParser.effectiveType(key, variable.getType());
         boolean blank = isBlank(raw);
         if (variable.isRequired() && blank) {
             errors.add(new FieldErrorDetail(key, "error.form.required"));
@@ -73,7 +76,7 @@ public class FormDataValidator {
             return;
         }
 
-        switch (variable.getType()) {
+        switch (type) {
             case TEXT, LONG_TEXT -> validateText(key, stringValue(raw), constraints, errors);
             case EMAIL -> {
                 String value = stringValue(raw);

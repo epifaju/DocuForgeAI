@@ -74,7 +74,7 @@ Windows : `scripts/backup.ps1`, `restore.ps1`, `verify-backup.ps1`.
 ## Users (ADMIN)
 
 - UI `/users` — creer un utilisateur, activer/desactiver
-- API `GET/POST /api/v1/admin/users`, `PUT /api/v1/admin/users/{id}`
+- API `GET/POST /api/v1/admin/users`, `GET/PUT /api/v1/admin/users/{id}`
 
 ## Settings societe (ADMIN)
 

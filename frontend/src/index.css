@@ -37,3 +37,65 @@ h2,
 .brand {
   font-family: "Fraunces", Georgia, serif;
 }
+
+@keyframes dash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dash-count {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dash-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.dash-rise {
+  animation: dash-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dash-count {
+  animation: dash-count 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dash-rule {
+  transform-origin: left center;
+  animation: dash-line 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dash-overview-wash::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(520px 220px at 8% 0%, rgb(31 107 79 / 0.08) 0%, transparent 70%),
+    linear-gradient(180deg, rgb(231 239 234 / 0.45) 0%, transparent 55%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-rise,
+  .dash-count,
+  .dash-rule {
+    animation: none;
+  }
+}

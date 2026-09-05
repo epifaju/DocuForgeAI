@@ -21,6 +21,7 @@ export function login(companyIdentifier: string, email: string, password: string
   return apiJson<TokenResponse>("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify({ companyIdentifier, email, password }),
+    skipAuthRefresh: true,
   });
 }
 

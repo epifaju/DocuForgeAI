@@ -26,11 +26,19 @@ Règles :
 | `phone`, `tel`, `mobile` | PHONE |
 | `date` | DATE |
 | `total`, `amount`, `price`, `montant` | CURRENCY |
+| `isX` / `hasX` (camelCase, ex. `isActive`, `hasChildren`) | BOOLEAN |
+| `enabled`, `active` | BOOLEAN |
 | `description`, `notes`, `comment` | LONG_TEXT |
-| `count`, `qty`, `number` | NUMBER |
+| `count`, `quantity`, `qty`, `age`, `integer` | NUMBER |
 | sinon | TEXT |
 
-Affiner ensuite via `PUT /api/v1/template-versions/{id}/variables` (label, required, validation).
+Conventions importantes :
+
+- Préfixes `is` / `has` : **camelCase** uniquement (`isActive`) — `issuePlace` reste TEXT.
+- Suffixes `number` / `num` : **TEXT** par défaut (références d’acte, n° de dossier : `2026-000101`). Utiliser `quantity` / `count` pour un vrai entier.
+- Quantités numériques : `line.quantity`, `order.itemCount`, `person.age`.
+
+Affiner ensuite via `PUT /api/v1/template-versions/{id}/variables` (label, required, type, validation).
 
 ## Workflow recommandé
 

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { createUser, listUsers, updateUser } from "@/api/users";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
@@ -225,9 +225,21 @@ export function UsersPage() {
             {items.map((u) => (
               <tr key={u.id} className="border-b border-[var(--line)] last:border-0">
                 <td className="px-4 py-3 font-medium">
-                  {u.firstName} {u.lastName}
+                  <Link
+                    to={`/users/${u.id}`}
+                    className="text-[var(--brand-ink)] underline-offset-2 hover:text-[var(--brand)] hover:underline"
+                  >
+                    {u.firstName} {u.lastName}
+                  </Link>
                 </td>
-                <td className="px-4 py-3">{u.email}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    to={`/users/${u.id}`}
+                    className="text-[var(--brand)] underline-offset-2 hover:underline"
+                  >
+                    {u.email}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-[var(--muted)]">{(u.roles ?? []).join(", ")}</td>
                 <td className="px-4 py-3">
                   <StatusBadge
@@ -236,22 +248,30 @@ export function UsersPage() {
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    disabled={toggle.isPending || u.id === me?.id}
-                    className="text-sm text-[var(--brand)] underline disabled:opacity-40"
-                    onClick={() =>
-                      toggle.mutate({
-                        id: u.id,
-                        firstName: u.firstName,
-                        lastName: u.lastName,
-                        roles: u.roles,
-                        enabled: u.enabled,
-                      })
-                    }
-                  >
-                    {u.enabled ? t("users.disable") : t("users.enable")}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Link
+                      to={`/users/${u.id}`}
+                      className="text-sm text-[var(--brand)] underline"
+                    >
+                      {t("users.view")}
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={toggle.isPending || u.id === me?.id}
+                      className="text-sm text-[var(--brand)] underline disabled:opacity-40"
+                      onClick={() =>
+                        toggle.mutate({
+                          id: u.id,
+                          firstName: u.firstName,
+                          lastName: u.lastName,
+                          roles: u.roles,
+                          enabled: u.enabled,
+                        })
+                      }
+                    >
+                      {u.enabled ? t("users.disable") : t("users.enable")}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -67,7 +67,31 @@ class DocxVariableParserTest {
         assertThat(DocxVariableParser.inferType("order.date")).isEqualTo(VariableType.DATE);
         assertThat(DocxVariableParser.inferType("invoice.total")).isEqualTo(VariableType.CURRENCY);
         assertThat(DocxVariableParser.inferType("user.isActive")).isEqualTo(VariableType.BOOLEAN);
+        assertThat(DocxVariableParser.inferType("account.hasChildren")).isEqualTo(VariableType.BOOLEAN);
         assertThat(DocxVariableParser.inferType("notes.description")).isEqualTo(VariableType.LONG_TEXT);
+        assertThat(DocxVariableParser.inferType("document.issuePlace")).isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.inferType("document.issuer")).isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.inferType("meta.hashtag")).isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.inferType("record.number")).isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.inferType("invoice.number")).isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.inferType("file.num")).isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.inferType("line.quantity")).isEqualTo(VariableType.NUMBER);
+        assertThat(DocxVariableParser.inferType("order.itemCount")).isEqualTo(VariableType.NUMBER);
+        assertThat(DocxVariableParser.inferType("person.age")).isEqualTo(VariableType.NUMBER);
+        assertThat(DocxVariableParser.inferType("person.childAge")).isEqualTo(VariableType.NUMBER);
+        assertThat(DocxVariableParser.inferType("record.page")).isEqualTo(VariableType.TEXT);
+    }
+
+    @Test
+    void healsLegacyBooleanAndNumberFalsePositives() {
+        assertThat(DocxVariableParser.effectiveType("document.issuePlace", VariableType.BOOLEAN))
+                .isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.effectiveType("user.isActive", VariableType.BOOLEAN))
+                .isEqualTo(VariableType.BOOLEAN);
+        assertThat(DocxVariableParser.effectiveType("record.number", VariableType.NUMBER))
+                .isEqualTo(VariableType.TEXT);
+        assertThat(DocxVariableParser.effectiveType("line.quantity", VariableType.NUMBER))
+                .isEqualTo(VariableType.NUMBER);
     }
 
     private static byte[] docxWithText(String text) throws Exception {

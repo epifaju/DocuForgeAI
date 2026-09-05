@@ -63,6 +63,14 @@ public class AdminUserService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public AdminUserResponse get(DocuForgePrincipal principal, UUID userId) {
+        UserAccount user = userAccountRepository
+                .findByIdAndCompanyIdWithRoles(userId, principal.getCompanyId())
+                .orElseThrow(() -> notFound("Utilisateur introuvable"));
+        return toResponse(user);
+    }
+
     @Transactional
     public AdminUserResponse create(DocuForgePrincipal principal, AdminUserCreateRequest request) {
         Company company = companyRepository

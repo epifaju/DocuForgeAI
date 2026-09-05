@@ -134,6 +134,7 @@ public class DocxVariableParser {
     static VariableType inferType(String key) {
         String lower = key.toLowerCase(Locale.ROOT);
         String leaf = lower.contains(".") ? lower.substring(lower.lastIndexOf('.') + 1) : lower;
+        String rawLeaf = key.contains(".") ? key.substring(key.lastIndexOf('.') + 1) : key;
         if (leaf.contains("email") || leaf.endsWith("mail")) {
             return VariableType.EMAIL;
         }
@@ -150,18 +151,65 @@ public class DocxVariableParser {
                 || leaf.contains("currency") || leaf.contains("montant")) {
             return VariableType.CURRENCY;
         }
-        if (leaf.startsWith("is") || leaf.startsWith("has") || leaf.contains("enabled")
-                || leaf.contains("active") || leaf.equals("boolean")) {
+        if (isBooleanLeaf(rawLeaf, leaf)) {
             return VariableType.BOOLEAN;
         }
         if (leaf.contains("description") || leaf.contains("summary") || leaf.contains("notes")
                 || leaf.contains("comment")) {
             return VariableType.LONG_TEXT;
         }
-        if (leaf.contains("count") || leaf.contains("quantity") || leaf.contains("qty")
-                || leaf.endsWith("number") || leaf.endsWith("num")) {
+        if (isNumericLeaf(rawLeaf, leaf)) {
             return VariableType.NUMBER;
         }
         return VariableType.TEXT;
+    }
+
+    /**
+     * Boolean only for camelCase prefixes ({@code isActive}, {@code hasChildren}),
+     * not bare {@code startsWith("is")} which misclassifies {@code issuePlace} / {@code issuer}.
+     */
+    private static boolean isBooleanLeaf(String rawLeaf, String lowerLeaf) {
+        if (lowerLeaf.equals("boolean") || lowerLeaf.contains("enabled")) {
+            return true;
+        }
+        if (lowerLeaf.equals("active") || lowerLeaf.endsWith("active")) {
+            return true;
+        }
+        return rawLeaf.matches("is[A-Z0-9].*")
+                || rawLeaf.matches("has[A-Z0-9].*")
+                || rawLeaf.equals("is")
+                || rawLeaf.equals("has");
+    }
+
+    /**
+     * Numeric quantities only — not bare {@code number}/{@code num} which are usually
+     * alphanumeric references in document templates ({@code record.number} → {@code 2026-000101}).
+     */
+    private static boolean isNumericLeaf(String rawLeaf, String lowerLeaf) {
+        return lowerLeaf.contains("count")
+                || lowerLeaf.contains("quantity")
+                || lowerLeaf.contains("qty")
+                || lowerLeaf.equals("age")
+                || rawLeaf.endsWith("Age")
+                || lowerLeaf.equals("integer")
+                || lowerLeaf.endsWith("integer");
+    }
+
+    /**
+     * Heal legacy false-positives without requiring re-upload:
+     * - BOOLEAN from bare {@code is}/{@code has} prefixes ({@code issuePlace})
+     * - NUMBER from bare {@code number}/{@code num} suffixes ({@code record.number})
+     */
+    public static VariableType effectiveType(String key, VariableType stored) {
+        if (stored == null) {
+            return inferType(key);
+        }
+        if (stored == VariableType.BOOLEAN || stored == VariableType.NUMBER) {
+            VariableType inferred = inferType(key);
+            if (inferred != stored) {
+                return inferred;
+            }
+        }
+        return stored;
     }
 }

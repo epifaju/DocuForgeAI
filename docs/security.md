@@ -5,7 +5,9 @@ Références PRD : §§16, §34, §38, §75, §90–91. Phase 18.
 ## Auth / JWT
 
 - Login multi-tenant (`companyIdentifier` + email + password).
-- Access JWT HS256 (`type=access`), refresh opaque hashé en base.
+- Access JWT HS256 (`type=access`), refresh opaque hashé en base (rotation à chaque refresh).
+- Durées par défaut : access **15 min**, refresh **7 jours** (`JWT_ACCESS_EXPIRATION` / `JWT_REFRESH_EXPIRATION`).
+- UI : stockage access + refresh ; renouvellement **proactif** avant expiration et **retry** sur `401` via `/api/v1/auth/refresh` (une seule requête concurrente).
 - Endpoints protégés sauf `login`, `refresh`, health, OpenAPI, ping.
 - Secrets : `JWT_SECRET` (≥ 32 octets), jamais loggé ni mis dans `audit_logs.metadata`.
 

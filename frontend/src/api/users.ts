@@ -16,6 +16,10 @@ export function listUsers(token: string) {
   return apiJson<PageResponse<AdminUser>>("/api/v1/admin/users?size=100", { token });
 }
 
+export function getUser(token: string, id: string) {
+  return apiJson<AdminUser>(`/api/v1/admin/users/${id}`, { token });
+}
+
 export function createUser(
   token: string,
   body: {

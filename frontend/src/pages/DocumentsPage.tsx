@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { listDocuments } from "@/api/documents";
 import { listTemplates } from "@/api/forms";
 import { useAuth } from "@/auth/AuthContext";
@@ -10,14 +10,31 @@ import { dateLocale } from "@/i18n";
 
 const STATUSES = ["", "GENERATED", "CONVERTING", "COMPLETED", "FAILED"] as const;
 
+function parseStatusParam(raw: string | null): string {
+  if (!raw) return "";
+  return (STATUSES as readonly string[]).includes(raw) ? raw : "";
+}
+
 export function DocumentsPage() {
   const { t, i18n } = useTranslation();
   const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
+  const status = parseStatusParam(searchParams.get("status"));
   const [templateId, setTemplateId] = useState("");
   const [page, setPage] = useState(0);
   const loc = dateLocale(i18n.language);
+
+  function setStatus(next: string) {
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set("status", next);
+    else params.delete("status");
+    setSearchParams(params, { replace: true });
+  }
+
+  useEffect(() => {
+    setPage(0);
+  }, [status]);
 
   const filters = useMemo(
     () => ({

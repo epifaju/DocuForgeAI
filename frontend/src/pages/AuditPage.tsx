@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Navigate } from "react-router-dom";
 import { listAudit } from "@/api/audit";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
@@ -51,11 +52,12 @@ const STATUSES = ["", "SUCCESS", "FAILURE", "FAILED"] as const;
 
 export function AuditPage() {
   const { t, i18n } = useTranslation();
-  const { token } = useAuth();
+  const { token, hasRole } = useAuth();
   const loc = dateLocale(i18n.language);
   const [action, setAction] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(0);
+  const canViewAudit = hasRole("ADMIN", "EDITOR");
 
   const filters = useMemo(
     () => ({
@@ -70,8 +72,12 @@ export function AuditPage() {
   const audit = useQuery({
     queryKey: ["audit", filters],
     queryFn: () => listAudit(token!, filters),
-    enabled: !!token,
+    enabled: !!token && canViewAudit,
   });
+
+  if (!canViewAudit) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <AppShell

@@ -18,8 +18,9 @@ const NAV = [
   { to: "/templates", labelKey: "nav.templates" },
   { to: "/documents", labelKey: "nav.documents" },
   { to: "/batches", labelKey: "nav.batches" },
-  { to: "/audit", labelKey: "nav.audit" },
 ] as const;
+
+const AUDIT_NAV = { to: "/audit", labelKey: "nav.audit" } as const;
 
 const ADMIN_NAV = [
   { to: "/business-packs", labelKey: "nav.packs" },
@@ -49,8 +50,9 @@ export function AppShell({
   children: ReactNode;
   actions?: ReactNode;
 }) {
-  const { logout, isAdmin, user } = useAuth();
+  const { logout, isAdmin, hasRole, user } = useAuth();
   const { t } = useTranslation();
+  const canViewAudit = hasRole("ADMIN", "EDITOR");
 
   return (
     <div className="min-h-screen">
@@ -76,6 +78,11 @@ export function AppShell({
                   {t(item.labelKey)}
                 </NavLink>
               ))}
+              {canViewAudit ? (
+                <NavLink to={AUDIT_NAV.to} className={linkClass}>
+                  {t(AUDIT_NAV.labelKey)}
+                </NavLink>
+              ) : null}
               {isAdmin
                 ? ADMIN_NAV.map((item) => (
                     <NavLink key={item.to} to={item.to} className={linkClass}>

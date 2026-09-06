@@ -9,8 +9,9 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { dateLocale } from "@/i18n";
 
 export function DashboardPage() {
-  const { token } = useAuth();
+  const { token, hasRole } = useAuth();
   const { t, i18n } = useTranslation();
+  const canViewAudit = hasRole("ADMIN", "EDITOR");
   const dash = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => fetchDashboard(token!),
@@ -206,8 +207,8 @@ export function DashboardPage() {
 
             <FeedPanel
               title={t("dashboard.recentActivity")}
-              linkTo="/audit"
-              linkLabel={t("dashboard.auditLink")}
+              linkTo={canViewAudit ? "/audit" : undefined}
+              linkLabel={canViewAudit ? t("dashboard.auditLink") : undefined}
               empty={<p className="py-2 text-sm text-[var(--muted)]">{t("dashboard.noActivity")}</p>}
               isEmpty={activity.length === 0}
             >
@@ -338,8 +339,8 @@ function FeedPanel({
   isEmpty,
 }: {
   title: string;
-  linkTo: string;
-  linkLabel: string;
+  linkTo?: string;
+  linkLabel?: string;
   children: ReactNode;
   empty: ReactNode;
   isEmpty: boolean;
@@ -348,12 +349,14 @@ function FeedPanel({
     <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
         <h2 className="text-[15px] font-semibold tracking-tight text-[var(--brand-ink)]">{title}</h2>
-        <Link
-          to={linkTo}
-          className="text-xs font-medium text-[var(--brand)] transition-colors hover:text-[var(--brand-ink)]"
-        >
-          {linkLabel}
-        </Link>
+        {linkTo && linkLabel ? (
+          <Link
+            to={linkTo}
+            className="text-xs font-medium text-[var(--brand)] transition-colors hover:text-[var(--brand-ink)]"
+          >
+            {linkLabel}
+          </Link>
+        ) : null}
       </div>
       {isEmpty ? <div className="px-4 py-8 sm:px-5">{empty}</div> : <ul className="divide-y divide-[var(--line)]/70">{children}</ul>}
     </div>

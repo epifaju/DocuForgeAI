@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { CREDENTIALS, loginApi, seedActiveTemplate, type SeededTemplate } from "./api";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -22,6 +22,18 @@ export async function uiLogin(
   await page.getByLabel("Mot de passe").fill(creds.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await page.waitForURL("**/dashboard");
+}
+
+/**
+ * Full reload drops the in-memory access token; re-login if bootstrap/refresh fails.
+ */
+export async function gotoAuthed(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  if (await page.getByRole("heading", { name: "Connexion" }).isVisible().catch(() => false)) {
+    await uiLogin(page);
+    await page.goto(path);
+  }
+  await expect(page).not.toHaveURL(/\/login/);
 }
 
 export async function seedTemplateForRun(): Promise<{

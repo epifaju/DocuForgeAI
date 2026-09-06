@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "DBPF-1",
+  "name": "Pack Incomplet",
+  "slug": "incomplet",
+  "version": "1.0.0",
+  "type": "OFFICIAL",
+  "description": "Manifest volontairement invalide: id manquant.",
+  "publisher": {
+    "id": "docuforge",
+    "name": "DocuForge AI"
+  },
+  "compatibility": {
+    "minimumDocuForgeVersion": "0.1.0"
+  },
+  "locales": ["fr-FR"],
+  "defaultLocale": "fr-FR",
+  "templates": [
+    {
+      "code": "DEMO_TEMPLATE",
+      "name": "Demo",
+      "version": "1.0.0",
+      "templateFile": "templates/demo.docx",
+      "metadataFile": "metadata/demo.json"
+    }
+  ],
+  "checksums": {
+    "templates/demo.docx": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

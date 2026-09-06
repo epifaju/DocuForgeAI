@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "DBPF-1",
+  "id": "com.docuforge.pack.artisan",
+  "name": "Pack Artisan",
+  "slug": "artisan",
+  "version": "1.0.0",
+  "type": "OFFICIAL",
+  "description": "Modeles documentaires fictifs pour artisans et petites entreprises (demo DBPF-1).",
+  "publisher": {
+    "id": "docuforge",
+    "name": "DocuForge AI"
+  },
+  "compatibility": {
+    "minimumDocuForgeVersion": "0.1.0",
+    "maximumDocuForgeVersion": null
+  },
+  "locales": ["fr-FR"],
+  "defaultLocale": "fr-FR",
+  "categories": ["ARTISAN", "COMMERCIAL"],
+  "tags": ["artisan", "devis", "demo"],
+  "templates": [
+    {
+      "code": "ARTISAN_DEVIS",
+      "name": "Devis Artisan",
+      "version": "1.0.0",
+      "templateFile": "templates/artisan-devis.docx",
+      "metadataFile": "metadata/artisan-devis.json",
+      "previewFile": "previews/artisan-devis.png",
+      "enabledByDefault": true
+    }
+  ],
+  "prompts": [
+    {
+      "code": "ARTISAN_WORK_DESCRIPTION",
+      "version": "1.0.0",
+      "file": "prompts/work-description.txt"
+    }
+  ],
+  "samples": [
+    {
+      "code": "ARTISAN_DEVIS_SAMPLE",
+      "type": "JSON",
+      "file": "samples/artisan-devis.json",
+      "templateCode": "ARTISAN_DEVIS"
+    }
+  ],
+  "checksums": {
+    "templates/artisan-devis.docx": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "metadata/artisan-devis.json": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "prompts/work-description.txt": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "samples/artisan-devis.json": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "previews/artisan-devis.png": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  }
+}

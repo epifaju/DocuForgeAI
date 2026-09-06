@@ -3,6 +3,7 @@ package ai.docuforge.template;
 import ai.docuforge.audit.AuditActions;
 import ai.docuforge.audit.AuditService;
 import ai.docuforge.auth.security.DocuForgePrincipal;
+import ai.docuforge.domain.template.TemplateOrigin;
 import ai.docuforge.domain.template.TemplateVariable;
 import ai.docuforge.domain.template.TemplateVariableRepository;
 import ai.docuforge.domain.template.TemplateVersion;
@@ -72,6 +73,30 @@ public class TemplateVariableService {
         return templateVariableRepository.saveAll(entities);
     }
 
+    /**
+     * Deep-copies variable definitions onto a new template version (duplicate flow).
+     */
+    @Transactional
+    public void copyFromVersion(UUID sourceVersionId, TemplateVersion targetVersion) {
+        List<TemplateVariable> source = templateVariableRepository
+                .findByTemplateVersionIdOrderByDisplayOrderAsc(sourceVersionId);
+        List<TemplateVariable> copies = new ArrayList<>(source.size());
+        for (TemplateVariable src : source) {
+            TemplateVariable copy = new TemplateVariable();
+            copy.setTemplateVersion(targetVersion);
+            copy.setVariableKey(src.getVariableKey());
+            copy.setLabel(src.getLabel());
+            copy.setType(src.getType());
+            copy.setRequired(src.isRequired());
+            copy.setDefaultValue(src.getDefaultValue());
+            copy.setPlaceholder(src.getPlaceholder());
+            copy.setDisplayOrder(src.getDisplayOrder());
+            copy.setConfiguration(src.getConfiguration());
+            copies.add(copy);
+        }
+        templateVariableRepository.saveAll(copies);
+    }
+
     @Transactional(readOnly = true)
     public List<TemplateVariableResponse> list(DocuForgePrincipal principal, UUID versionId) {
         requireVersion(principal.getCompanyId(), versionId);
@@ -87,6 +112,9 @@ public class TemplateVariableService {
             TemplateVariablesUpdateRequest request
     ) {
         TemplateVersion version = requireVersion(principal.getCompanyId(), versionId);
+        if (version.getTemplate().getOrigin() == TemplateOrigin.PACK) {
+            throw conflict("error.template.pack_immutable");
+        }
         List<TemplateVariable> existing = templateVariableRepository
                 .findByTemplateVersionIdOrderByDisplayOrderAsc(versionId);
         Map<String, TemplateVariable> byKey = existing.stream()
@@ -116,7 +144,7 @@ public class TemplateVariableService {
         }
 
         if (seen.size() != existing.size()) {
-            throw badRequest("Toutes les variables detectees doivent etre fournies dans la mise a jour.");
+            throw badRequest("error.template.variables_incomplete");
         }
 
         List<TemplateVariable> saved = templateVariableRepository.saveAll(existing);

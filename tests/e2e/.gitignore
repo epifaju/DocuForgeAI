@@ -3,4 +3,5 @@ test-results/
 playwright-report/
 blob-report/
 fixtures/e2e-template.docx
+fixtures/docuforge-pack-artisan-demo-*.zip
 playwright/.cache/

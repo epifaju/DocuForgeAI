@@ -22,6 +22,7 @@ const NAV = [
 ] as const;
 
 const ADMIN_NAV = [
+  { to: "/business-packs", labelKey: "nav.packs" },
   { to: "/settings", labelKey: "nav.settings" },
   { to: "/users", labelKey: "nav.users" },
 ] as const;

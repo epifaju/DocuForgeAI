@@ -78,6 +78,13 @@ docuforge:
       - pdf
       - csv
       - zip
+      - json
+      - txt
+      - md
+      - png
+      - jpg
+      - jpeg
+      - webp
     allowed-content-types:
       - application/vnd.openxmlformats-officedocument.wordprocessingml.document
       - application/pdf
@@ -86,6 +93,10 @@ docuforge:
       - application/csv
       - application/zip
       - application/x-zip-compressed
+      - application/json
+      - image/png
+      - image/jpeg
+      - image/webp
   jwt:
     secret: ${JWT_SECRET:changeme_generate_a_long_random_secret_at_least_32_chars}
     access-expiration-seconds: ${JWT_ACCESS_EXPIRATION:900}
@@ -136,6 +147,26 @@ docuforge:
     host: ${CLAMAV_HOST:127.0.0.1}
     port: ${CLAMAV_PORT:3310}
     timeout-ms: ${CLAMAV_TIMEOUT_MS:10000}
+  packs:
+    enabled: ${DOCUFORGE_PACKS_ENABLED:true}
+    platform-version: ${PACK_PLATFORM_VERSION:0.1.0}
+    max-upload-size-mb: ${PACK_MAX_UPLOAD_SIZE_MB:100}
+    max-uncompressed-size-mb: ${PACK_MAX_UNCOMPRESSED_SIZE_MB:250}
+    max-files: ${PACK_MAX_FILES:500}
+    max-templates: ${PACK_MAX_TEMPLATES:100}
+    max-single-file-mb: ${PACK_MAX_SINGLE_FILE_MB:25}
+    max-compression-ratio: ${PACK_MAX_COMPRESSION_RATIO:50}
+    import-retention-hours: ${PACK_IMPORT_RETENTION_HOURS:24}
+    allowed-extensions:
+      - json
+      - docx
+      - txt
+      - md
+      - csv
+      - png
+      - jpg
+      - jpeg
+      - webp
 
 logging:
   level:

@@ -25,6 +25,16 @@ public interface GeneratedDocumentRepository
 
     boolean existsByTemplateId(UUID templateId);
 
+    @Query("""
+            select count(d) from GeneratedDocument d
+            where d.company.id = :companyId
+              and d.template.sourcePack.id = :packId
+            """)
+    long countByCompanyIdAndTemplateSourcePackId(
+            @Param("companyId") UUID companyId,
+            @Param("packId") UUID packId
+    );
+
     long countByCompanyId(UUID companyId);
 
     long countByCompany_IdAndCreatedAtGreaterThanEqual(UUID companyId, Instant from);

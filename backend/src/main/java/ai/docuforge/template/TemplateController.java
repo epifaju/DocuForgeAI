@@ -5,6 +5,7 @@ import ai.docuforge.common.api.ApiResponse;
 import ai.docuforge.common.api.PageResponse;
 import ai.docuforge.domain.template.TemplateStatus;
 import ai.docuforge.template.dto.TemplateCreateRequest;
+import ai.docuforge.template.dto.TemplateDuplicateRequest;
 import ai.docuforge.template.dto.TemplateResponse;
 import ai.docuforge.template.dto.TemplateUpdateRequest;
 import ai.docuforge.template.dto.TemplateVersionResponse;
@@ -77,6 +78,17 @@ public class TemplateController {
             @Valid @RequestBody TemplateUpdateRequest request
     ) {
         return ApiResponse.ok(templateService.update(principal, id, request), "Template mis à jour");
+    }
+
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAnyRole('ADMIN','EDITOR')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<TemplateResponse> duplicate(
+            @AuthenticationPrincipal DocuForgePrincipal principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody TemplateDuplicateRequest request
+    ) {
+        return ApiResponse.ok(templateService.duplicate(principal, id, request), "Template duplique");
     }
 
     @DeleteMapping("/{id}")

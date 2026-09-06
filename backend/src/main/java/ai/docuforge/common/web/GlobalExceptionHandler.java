@@ -1,5 +1,7 @@
 package ai.docuforge.common.web;
 
+import ai.docuforge.businesspack.archive.PackArchiveException;
+import ai.docuforge.businesspack.manifest.PackManifestException;
 import ai.docuforge.common.api.ErrorResponse;
 import ai.docuforge.common.api.ErrorResponse.FieldErrorDetail;
 import ai.docuforge.common.i18n.ErrorMessages;
@@ -87,6 +89,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(StorageException.class)
     public ResponseEntity<ErrorResponse> handleStorage(StorageException ex) {
+        return build(ex.getStatus(), ex.getCode(), errorMessages.localize(ex.getMessage()), List.of());
+    }
+
+    @ExceptionHandler(PackArchiveException.class)
+    public ResponseEntity<ErrorResponse> handlePackArchive(PackArchiveException ex) {
+        return build(ex.getStatus(), ex.getCode(), errorMessages.localize(ex.getMessage()), List.of());
+    }
+
+    @ExceptionHandler(PackManifestException.class)
+    public ResponseEntity<ErrorResponse> handlePackManifest(PackManifestException ex) {
         return build(ex.getStatus(), ex.getCode(), errorMessages.localize(ex.getMessage()), List.of());
     }
 

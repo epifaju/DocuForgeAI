@@ -4,6 +4,9 @@ import { useAuth } from "@/auth/AuthContext";
 import { AuditPage } from "@/pages/AuditPage";
 import { BatchDetailPage } from "@/pages/BatchDetailPage";
 import { BatchesPage } from "@/pages/BatchesPage";
+import { BusinessPackDetailPage } from "@/pages/BusinessPackDetailPage";
+import { BusinessPackImportPage } from "@/pages/BusinessPackImportPage";
+import { BusinessPacksPage } from "@/pages/BusinessPacksPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DocumentDetailPage } from "@/pages/DocumentDetailPage";
 import { DocumentNewVersionPage } from "@/pages/DocumentNewVersionPage";
@@ -108,6 +111,54 @@ export default function App() {
         element={
           <Protected>
             <UserDetailPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/business-packs"
+        element={
+          <Protected>
+            <BusinessPacksPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/business-packs/import"
+        element={
+          <Protected>
+            <BusinessPackImportPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/business-packs/import/:jobId"
+        element={
+          <Protected>
+            <BusinessPackImportPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/business-packs/:packId"
+        element={
+          <Protected>
+            <BusinessPackDetailPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/business-packs/:packId/templates"
+        element={
+          <Protected>
+            <BusinessPackDetailPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/business-packs/:packId/versions"
+        element={
+          <Protected>
+            <BusinessPackDetailPage />
           </Protected>
         }
       />

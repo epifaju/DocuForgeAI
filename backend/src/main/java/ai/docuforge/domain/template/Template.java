@@ -1,6 +1,7 @@
 package ai.docuforge.domain.template;
 
 import ai.docuforge.common.persistence.CreatedAuditEntity;
+import ai.docuforge.domain.businesspack.BusinessPack;
 import ai.docuforge.domain.company.Company;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,6 +44,14 @@ public class Template extends CreatedAuditEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private TemplateStatus status = TemplateStatus.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private TemplateOrigin origin = TemplateOrigin.USER;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_pack_id")
+    private BusinessPack sourcePack;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_version_id")

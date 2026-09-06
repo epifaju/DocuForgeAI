@@ -59,6 +59,14 @@ export function archiveTemplate(token: string, templateId: string) {
   });
 }
 
+export function duplicateTemplate(token: string, templateId: string, name: string) {
+  return apiJson<TemplateDetail>(`/api/v1/templates/${templateId}/duplicate`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ name }),
+  });
+}
+
 export function listTemplatesPage(
   token: string,
   opts: { page?: number; size?: number } = {},

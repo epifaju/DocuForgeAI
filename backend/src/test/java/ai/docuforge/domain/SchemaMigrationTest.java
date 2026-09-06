@@ -132,5 +132,62 @@ class SchemaMigrationTest {
                 Integer.class
         );
         assertThat(settingsTables).isEqualTo(1);
+
+        Integer passwordResetTables = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'password_reset_tokens'
+                """,
+                Integer.class
+        );
+        assertThat(passwordResetTables).isEqualTo(1);
+
+        Integer businessPackTables = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name IN ('business_packs', 'business_pack_versions')
+                """,
+                Integer.class
+        );
+        assertThat(businessPackTables).isEqualTo(2);
+
+        Integer packCompanyColumn = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'business_packs'
+                  AND column_name = 'company_id'
+                """,
+                Integer.class
+        );
+        assertThat(packCompanyColumn).isEqualTo(1);
+
+        Integer relationTables = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name IN (
+                    'business_pack_templates',
+                    'business_pack_prompts',
+                    'business_pack_files',
+                    'business_pack_installations',
+                    'pack_import_jobs'
+                  )
+                """,
+                Integer.class
+        );
+        assertThat(relationTables).isEqualTo(5);
+
+        Integer stagingCol = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'pack_import_jobs'
+                  AND column_name IN ('staging_storage_key', 'expires_at')
+                """,
+                Integer.class
+        );
+        assertThat(stagingCol).isEqualTo(2);
     }
 }

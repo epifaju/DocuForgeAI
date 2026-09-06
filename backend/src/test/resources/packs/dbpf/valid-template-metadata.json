@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "DBPF-TEMPLATE-1",
+  "code": "ARTISAN_DEVIS",
+  "name": "Devis Artisan",
+  "description": "Devis professionnel fictif pour artisan (demo DBPF-1).",
+  "category": "DEVIS",
+  "version": "1.0.0",
+  "outputFormats": ["DOCX", "PDF"],
+  "variables": [
+    {
+      "key": "company.name",
+      "label": "Nom de l'entreprise",
+      "type": "TEXT",
+      "required": true,
+      "order": 10
+    },
+    {
+      "key": "client.name",
+      "label": "Nom du client",
+      "type": "TEXT",
+      "required": true,
+      "order": 20,
+      "validation": {
+        "minLength": 2,
+        "maxLength": 150,
+        "pattern": null,
+        "minimum": null,
+        "maximum": null
+      }
+    },
+    {
+      "key": "quote.date",
+      "label": "Date du devis",
+      "type": "DATE",
+      "required": true,
+      "order": 30
+    },
+    {
+      "key": "quote.amount",
+      "label": "Montant HT",
+      "type": "CURRENCY",
+      "required": true,
+      "order": 35
+    },
+    {
+      "key": "quote.lineCount",
+      "label": "Nombre de lignes",
+      "type": "INTEGER",
+      "required": false,
+      "order": 36
+    },
+    {
+      "key": "contract.type",
+      "label": "Type de contrat",
+      "type": "SELECT",
+      "required": false,
+      "order": 38,
+      "options": [
+        { "value": "FORFAIT", "label": "Forfait" },
+        { "value": "REGIE", "label": "Regie" }
+      ]
+    },
+    {
+      "key": "work.description",
+      "label": "Description des travaux",
+      "type": "LONG_TEXT",
+      "required": true,
+      "order": 40,
+      "ai": {
+        "enabled": true,
+        "operations": ["FORMALIZE", "REWRITE"],
+        "promptCode": "ARTISAN_WORK_DESCRIPTION"
+      }
+    }
+  ]
+}

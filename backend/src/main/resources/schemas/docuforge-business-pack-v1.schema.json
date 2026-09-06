@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docuforge.ai/schemas/docuforge-business-pack-v1.schema.json",
+  "title": "DocuForge Business Pack Manifest (DBPF-1)",
+  "description": "JSON Schema for pack root manifest.json. Semantic rules (defaultLocale in locales, file existence, checksum match) are enforced later by PackManifestValidator.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "slug",
+    "version",
+    "type",
+    "description",
+    "publisher",
+    "compatibility",
+    "locales",
+    "defaultLocale",
+    "templates",
+    "checksums"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "DBPF-1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 255,
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*){2,}$",
+      "description": "Stable pack key (never changes across versions)."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "version": {
+      "$ref": "#/$defs/semver"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["OFFICIAL", "CUSTOM", "THIRD_PARTY"]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["minimumDocuForgeVersion"],
+      "properties": {
+        "minimumDocuForgeVersion": {
+          "$ref": "#/$defs/semver"
+        },
+        "maximumDocuForgeVersion": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/semver" },
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)\\.x$",
+              "description": "Major-range shorthand such as 1.x"
+            }
+          ]
+        }
+      }
+    },
+    "locales": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/bcp47"
+      }
+    },
+    "defaultLocale": {
+      "$ref": "#/$defs/bcp47"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      }
+    },
+    "templates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/templateEntry"
+      }
+    },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/promptEntry"
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sampleEntry"
+      }
+    },
+    "checksums": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000,
+        "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._\\-/]+$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/sha256Checksum"
+      }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "description": "Semantic Version MAJOR.MINOR.PATCH (no pre-release in DBPF-1 MVP)."
+    },
+    "bcp47": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 35,
+      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+      "description": "BCP 47 language tag (e.g. fr-FR, pt-PT)."
+    },
+    "sha256Checksum": {
+      "type": "string",
+      "pattern": "^sha256:[a-fA-F0-9]{64}$"
+    },
+    "packRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._\\-/]+$"
+    },
+    "templateCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{2,149}$"
+    },
+    "templateEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "code",
+        "name",
+        "version",
+        "templateFile",
+        "metadataFile"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/templateCode"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "version": {
+          "$ref": "#/$defs/semver"
+        },
+        "templateFile": {
+          "$ref": "#/$defs/packRelativePath"
+        },
+        "metadataFile": {
+          "$ref": "#/$defs/packRelativePath"
+        },
+        "previewFile": {
+          "$ref": "#/$defs/packRelativePath"
+        },
+        "enabledByDefault": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "promptEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["code", "version", "file"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,149}$"
+        },
+        "version": {
+          "$ref": "#/$defs/semver"
+        },
+        "file": {
+          "$ref": "#/$defs/packRelativePath"
+        }
+      }
+    },
+    "sampleEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["code", "type", "file"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,149}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["JSON", "CSV"]
+        },
+        "file": {
+          "$ref": "#/$defs/packRelativePath"
+        },
+        "templateCode": {
+          "$ref": "#/$defs/templateCode"
+        }
+      }
+    }
+  }
+}

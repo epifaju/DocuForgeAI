@@ -25,6 +25,9 @@
     <jjwt.version>0.12.6</jjwt.version>
     <poi.version>5.4.0</poi.version>
     <jodconverter.version>4.4.11</jodconverter.version>
+    <json-schema-validator.version>1.5.7</json-schema-validator.version>
+    <commons-compress.version>1.27.1</commons-compress.version>
+    <semver4j.version>3.1.0</semver4j.version>
   </properties>
 
   <dependencies>
@@ -121,6 +124,21 @@
       <groupId>com.bucket4j</groupId>
       <artifactId>bucket4j_jdk17-core</artifactId>
       <version>8.14.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <version>${json-schema-validator.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>${commons-compress.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.vdurmont</groupId>
+      <artifactId>semver4j</artifactId>
+      <version>${semver4j.version}</version>
     </dependency>
 
     <dependency>

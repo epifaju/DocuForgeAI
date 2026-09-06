@@ -29,6 +29,18 @@ public final class AuditActions {
     public static final String DATA_PURGED = "DATA_PURGED";
     public static final String ACCOUNT_DELETED = "ACCOUNT_DELETED";
     public static final String DOCUMENT_DELETED = "DOCUMENT_DELETED";
+    public static final String PACK_UPLOADED = "PACK_UPLOADED";
+    public static final String PACK_VALIDATED = "PACK_VALIDATED";
+    public static final String PACK_VALIDATION_FAILED = "PACK_VALIDATION_FAILED";
+    public static final String PACK_INSTALLED = "PACK_INSTALLED";
+    public static final String PACK_INSTALLATION_FAILED = "PACK_INSTALLATION_FAILED";
+    public static final String PACK_UPDATED = "PACK_UPDATED";
+    public static final String PACK_UNINSTALLED = "PACK_UNINSTALLED";
+    public static final String PACK_EXPORTED = "PACK_EXPORTED";
+    public static final String PACK_ENABLED = "PACK_ENABLED";
+    public static final String PACK_DISABLED = "PACK_DISABLED";
+    public static final String PACK_TEMPLATE_ENABLED = "PACK_TEMPLATE_ENABLED";
+    public static final String PACK_TEMPLATE_DISABLED = "PACK_TEMPLATE_DISABLED";
 
     private AuditActions() {
     }

@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docuforge.ai/schemas/docuforge-template-metadata-v1.schema.json",
+  "title": "DocuForge Template Metadata (DBPF-TEMPLATE-1)",
+  "description": "JSON Schema for metadata/*.json files inside a DBPF-1 pack. Placeholder/DOCX coherence is enforced by PackTemplateValidator (Phase 7).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "code",
+    "name",
+    "version",
+    "outputFormats",
+    "variables"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "DBPF-TEMPLATE-1"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{2,149}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "outputFormats": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["DOCX", "PDF"]
+      }
+    },
+    "variables": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/variable"
+      }
+    }
+  },
+  "$defs": {
+    "variableKey": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200,
+      "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)+$",
+      "description": "Dotted variable key (DBPF-1). Maps to template_variables.variable_key on install."
+    },
+    "variableType": {
+      "type": "string",
+      "enum": [
+        "TEXT",
+        "LONG_TEXT",
+        "INTEGER",
+        "DECIMAL",
+        "CURRENCY",
+        "DATE",
+        "DATETIME",
+        "BOOLEAN",
+        "EMAIL",
+        "PHONE",
+        "SELECT",
+        "MULTISELECT"
+      ],
+      "description": "DBPF-1 INTEGER maps to DocuForge VariableType.NUMBER at install time."
+    },
+    "selectOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "label"],
+      "properties": {
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minLength": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "maxLength": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "pattern": {
+          "type": ["string", "null"],
+          "maxLength": 500
+        },
+        "minimum": {
+          "type": ["number", "null"]
+        },
+        "maximum": {
+          "type": ["number", "null"]
+        }
+      }
+    },
+    "aiAssist": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "promptCode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,149}$"
+        }
+      }
+    },
+    "variable": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["key", "label", "type", "required"],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/variableKey"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "type": {
+          "$ref": "#/$defs/variableType"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defaultValue": {
+          "type": ["string", "number", "boolean", "null"]
+        },
+        "placeholder": {
+          "type": ["string", "null"],
+          "maxLength": 500
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/selectOption"
+          }
+        },
+        "validation": {
+          "$ref": "#/$defs/validation"
+        },
+        "ai": {
+          "$ref": "#/$defs/aiAssist"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["SELECT", "MULTISELECT"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["options"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "key": {
+                "pattern": "^system\\."
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "key": {
+                "not": {
+                  "pattern": "^system\\."
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

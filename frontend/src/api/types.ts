@@ -49,6 +49,8 @@ export interface TemplateSummary {
   code: string;
   name: string;
   status: string;
+  origin?: string | null;
+  sourcePackId?: string | null;
   currentVersionNumber?: number | null;
   currentVersionId?: string | null;
 }

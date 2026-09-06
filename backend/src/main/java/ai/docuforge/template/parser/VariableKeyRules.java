@@ -25,7 +25,16 @@ public final class VariableKeyRules {
             return false;
         }
         String lower = trimmed.toLowerCase(Locale.ROOT);
-        return !lower.contains("script") && !lower.contains("javascript:");
+        if (lower.contains("javascript:")) {
+            return false;
+        }
+        // Reject the path segment "script" only — not substrings like "description".
+        for (String segment : lower.split("\\.")) {
+            if ("script".equals(segment)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static String normalize(String raw) {

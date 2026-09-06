@@ -3,7 +3,8 @@ package ai.docuforge.storage;
 public enum StorageCategory {
     TEMPLATES("templates"),
     GENERATED("generated"),
-    TEMPORARY("temporary");
+    TEMPORARY("temporary"),
+    PACK_IMPORTS("packimports");
 
     private final String directory;
 

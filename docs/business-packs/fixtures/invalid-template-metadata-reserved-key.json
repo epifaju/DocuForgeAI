@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "DBPF-TEMPLATE-1",
+  "code": "ARTISAN_DEVIS",
+  "name": "Devis Artisan",
+  "version": "1.0.0",
+  "outputFormats": ["DOCX"],
+  "variables": [
+    {
+      "key": "system.generationDate",
+      "label": "Date systeme",
+      "type": "DATE",
+      "required": false
+    }
+  ]
+}

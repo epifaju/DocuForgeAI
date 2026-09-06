@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "DBPF-1",
+  "id": "com.docuforge.pack.badslug",
+  "name": "Pack Bad Slug",
+  "slug": "Bad_Slug",
+  "version": "1.0.0",
+  "type": "CUSTOM",
+  "description": "Manifest volontairement invalide: slug incorrect.",
+  "publisher": {
+    "id": "acme",
+    "name": "ACME Demo"
+  },
+  "compatibility": {
+    "minimumDocuForgeVersion": "0.1.0"
+  },
+  "locales": ["fr-FR"],
+  "defaultLocale": "fr-FR",
+  "templates": [
+    {
+      "code": "DEMO_TEMPLATE",
+      "name": "Demo",
+      "version": "1.0.0",
+      "templateFile": "templates/demo.docx",
+      "metadataFile": "metadata/demo.json"
+    }
+  ],
+  "checksums": {
+    "templates/demo.docx": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

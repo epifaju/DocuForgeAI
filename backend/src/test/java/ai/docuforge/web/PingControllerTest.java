@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ai.docuforge.auth.security.JwtAuthenticationFilter;
 import ai.docuforge.auth.security.JwtService;
+import ai.docuforge.common.i18n.ErrorMessages;
 import ai.docuforge.config.DocuForgeProperties;
 import ai.docuforge.config.JwtProperties;
 import ai.docuforge.config.RateLimitProperties;
@@ -33,6 +34,9 @@ class PingControllerTest {
 
     @MockitoBean
     private DocuForgeProperties properties;
+
+    @MockitoBean
+    private ErrorMessages errorMessages;
 
     @MockitoBean
     private JwtProperties jwtProperties;

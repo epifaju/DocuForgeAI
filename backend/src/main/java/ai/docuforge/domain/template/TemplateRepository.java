@@ -1,5 +1,6 @@
 package ai.docuforge.domain.template;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,8 @@ public interface TemplateRepository extends JpaRepository<Template, UUID> {
 
     Optional<Template> findByIdAndCompanyId(UUID id, UUID companyId);
 
+    List<Template> findByCompany_IdAndSourcePack_Id(UUID companyId, UUID sourcePackId);
+
     boolean existsByCompanyIdAndCode(UUID companyId, String code);
 
     boolean existsByCompanyIdAndCodeAndIdNot(UUID companyId, String code, UUID id);
@@ -22,6 +25,7 @@ public interface TemplateRepository extends JpaRepository<Template, UUID> {
     @Query("""
             select t from Template t
             left join fetch t.currentVersion
+            left join fetch t.sourcePack
             where t.id = :id and t.company.id = :companyId
             """)
     Optional<Template> findByIdAndCompanyIdWithCurrentVersion(

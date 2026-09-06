@@ -6,6 +6,7 @@
   "scripts": {
     "fixtures": "node fixtures/generate-docx.mjs",
     "test": "npm run fixtures && playwright test",
+    "test:packs": "playwright test specs/06-business-pack.spec.ts specs/07-business-pack-update.spec.ts",
     "test:ui": "npm run fixtures && playwright test --ui",
     "test:headed": "npm run fixtures && playwright test --headed",
     "report": "playwright show-report"

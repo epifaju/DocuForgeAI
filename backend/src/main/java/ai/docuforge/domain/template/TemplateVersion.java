@@ -1,5 +1,6 @@
 package ai.docuforge.domain.template;
 
+import ai.docuforge.domain.businesspack.BusinessPackVersion;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -48,6 +49,13 @@ public class TemplateVersion {
 
     @Column(nullable = false, length = 64)
     private String checksum;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_pack_version_id")
+    private BusinessPackVersion sourcePackVersion;
+
+    @Column(name = "source_template_code", length = 150)
+    private String sourceTemplateCode;
 
     @Column(name = "created_by")
     private UUID createdBy;

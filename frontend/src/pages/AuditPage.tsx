@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { listAudit } from "@/api/audit";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { StatusBadge } from "@/components/StatusBadge";
 import { dateLocale } from "@/i18n";
 
 const ACTIONS = [
@@ -13,15 +14,40 @@ const ACTIONS = [
   "TEMPLATE_UPDATED",
   "TEMPLATE_ACTIVATED",
   "TEMPLATE_ARCHIVED",
+  "TEMPLATE_DELETED",
+  "TEMPLATE_VERSION_CREATED",
+  "TEMPLATE_VARIABLES_UPDATED",
   "DOCUMENT_GENERATED",
   "DOCUMENT_DOWNLOADED",
   "DOCUMENT_EMAILED",
   "DOCUMENT_VERSION_CREATED",
+  "DOCUMENT_PDF_CONVERTED",
+  "DOCUMENT_PDF_FAILED",
+  "DOCUMENT_DELETED",
   "AI_REQUEST",
   "BATCH_STARTED",
   "BATCH_COMPLETED",
   "SETTINGS_CHANGED",
+  "PASSWORD_RESET_REQUESTED",
+  "PASSWORD_RESET_COMPLETED",
+  "DATA_EXPORTED",
+  "DATA_PURGED",
+  "ACCOUNT_DELETED",
+  "PACK_UPLOADED",
+  "PACK_VALIDATED",
+  "PACK_VALIDATION_FAILED",
+  "PACK_INSTALLED",
+  "PACK_INSTALLATION_FAILED",
+  "PACK_UPDATED",
+  "PACK_UNINSTALLED",
+  "PACK_EXPORTED",
+  "PACK_ENABLED",
+  "PACK_DISABLED",
+  "PACK_TEMPLATE_ENABLED",
+  "PACK_TEMPLATE_DISABLED",
 ] as const;
+
+const STATUSES = ["", "SUCCESS", "FAILURE", "FAILED"] as const;
 
 export function AuditPage() {
   const { t, i18n } = useTranslation();
@@ -73,7 +99,9 @@ export function AuditPage() {
           >
             {ACTIONS.map((a) => (
               <option key={a || "all"} value={a}>
-                {a || t("common.allFeminine")}
+                {a
+                  ? t(`audit.actionLabel.${a}`, { defaultValue: a })
+                  : t("common.allFeminine")}
               </option>
             ))}
           </select>
@@ -88,10 +116,11 @@ export function AuditPage() {
             }}
             className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
           >
-            <option value="">{t("common.all")}</option>
-            <option value="SUCCESS">SUCCESS</option>
-            <option value="FAILURE">FAILURE</option>
-            <option value="FAILED">FAILED</option>
+            {STATUSES.map((s) => (
+              <option key={s || "all"} value={s}>
+                {s ? t(`audit.statusLabel.${s}`, { defaultValue: s }) : t("common.all")}
+              </option>
+            ))}
           </select>
         </label>
         <div className="flex items-end">
@@ -131,7 +160,9 @@ export function AuditPage() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       {new Date(row.createdAt).toLocaleString(loc)}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">{row.action}</td>
+                    <td className="px-4 py-3">
+                      {t(`audit.actionLabel.${row.action}`, { defaultValue: row.action })}
+                    </td>
                     <td className="px-4 py-3">
                       {row.entityType ?? "—"}
                       {row.entityId ? (
@@ -140,7 +171,14 @@ export function AuditPage() {
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3">{row.status}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge
+                        status={row.status}
+                        label={t(`audit.statusLabel.${row.status}`, {
+                          defaultValue: row.status,
+                        })}
+                      />
+                    </td>
                     <td className="px-4 py-3">{row.userEmail ?? "—"}</td>
                   </tr>
                 ))}

@@ -135,7 +135,12 @@
     "uploaded": "Versao DOCX importada.",
     "activated": "Modelo {{code}} ACTIVE.",
     "archived": "Modelo {{code}} arquivado.",
-    "loadError": "Nao foi possivel carregar os modelos."
+    "loadError": "Nao foi possivel carregar os modelos.",
+    "statusLabel": {
+      "DRAFT": "Rascunho",
+      "ACTIVE": "Ativo",
+      "ARCHIVED": "Arquivado"
+    }
   },
   "documents": {
     "title": "Documentos",
@@ -155,7 +160,13 @@
     "docVersion": "doc v{{n}}",
     "empty": "Nenhum documento para estes filtros.",
     "loadError": "Nao foi possivel carregar os documentos.",
-    "back": "← Documentos"
+    "back": "← Documentos",
+    "statusLabel": {
+      "GENERATED": "Gerado",
+      "CONVERTING": "A converter PDF",
+      "COMPLETED": "Concluido",
+      "FAILED": "Falhou"
+    }
   },
   "document": {
     "title": "Documento",
@@ -247,7 +258,15 @@
     "detail": "Detalhe",
     "empty": "Nenhum lote. Clique em « Novo lote » para comecar.",
     "loadError": "Nao foi possivel carregar os lotes.",
-    "needFile": "Ficheiro e modelo obrigatorios"
+    "needFile": "Ficheiro e modelo obrigatorios",
+    "statusLabel": {
+      "CREATED": "Criado",
+      "VALIDATING": "Validacao",
+      "PROCESSING": "Em curso",
+      "COMPLETED": "Concluido",
+      "PARTIALLY_FAILED": "Parcial",
+      "FAILED": "Falhou"
+    }
   },
   "batchDetail": {
     "title": "Detalhe do lote",
@@ -274,7 +293,50 @@
     "colEntity": "Entidade",
     "colStatus": "Estado",
     "colUser": "Utilizador",
-    "denied": "Acesso a auditoria recusado ou indisponivel (papeis ADMIN / EDITOR)."
+    "denied": "Acesso a auditoria recusado ou indisponivel (papeis ADMIN / EDITOR).",
+    "statusLabel": {
+      "SUCCESS": "Sucesso",
+      "FAILURE": "Falha",
+      "FAILED": "Falhou"
+    },
+    "actionLabel": {
+      "LOGIN": "Login",
+      "TEMPLATE_CREATED": "Modelo criado",
+      "TEMPLATE_UPDATED": "Modelo atualizado",
+      "TEMPLATE_ACTIVATED": "Modelo ativado",
+      "TEMPLATE_ARCHIVED": "Modelo arquivado",
+      "TEMPLATE_DELETED": "Modelo eliminado",
+      "TEMPLATE_VERSION_CREATED": "Versao de modelo criada",
+      "TEMPLATE_VARIABLES_UPDATED": "Variaveis de modelo atualizadas",
+      "DOCUMENT_GENERATED": "Documento gerado",
+      "DOCUMENT_DOWNLOADED": "Documento descarregado",
+      "DOCUMENT_EMAILED": "Documento enviado por email",
+      "DOCUMENT_VERSION_CREATED": "Versao de documento criada",
+      "DOCUMENT_PDF_CONVERTED": "PDF convertido",
+      "DOCUMENT_PDF_FAILED": "Falha na conversao PDF",
+      "DOCUMENT_DELETED": "Documento eliminado",
+      "AI_REQUEST": "Pedido IA",
+      "BATCH_STARTED": "Lote iniciado",
+      "BATCH_COMPLETED": "Lote concluido",
+      "SETTINGS_CHANGED": "Definicoes alteradas",
+      "PASSWORD_RESET_REQUESTED": "Pedido de redefinicao de palavra-passe",
+      "PASSWORD_RESET_COMPLETED": "Redefinicao de palavra-passe concluida",
+      "DATA_EXPORTED": "Dados exportados",
+      "DATA_PURGED": "Dados eliminados",
+      "ACCOUNT_DELETED": "Conta eliminada",
+      "PACK_UPLOADED": "Pack importado",
+      "PACK_VALIDATED": "Pack validado",
+      "PACK_VALIDATION_FAILED": "Validacao do pack falhou",
+      "PACK_INSTALLED": "Pack instalado",
+      "PACK_INSTALLATION_FAILED": "Instalacao do pack falhou",
+      "PACK_UPDATED": "Pack atualizado",
+      "PACK_UNINSTALLED": "Pack desinstalado",
+      "PACK_EXPORTED": "Pack exportado",
+      "PACK_ENABLED": "Pack ativado",
+      "PACK_DISABLED": "Pack desativado",
+      "PACK_TEMPLATE_ENABLED": "Modelo do pack ativado",
+      "PACK_TEMPLATE_DISABLED": "Modelo do pack desativado"
+    }
   },
   "users": {
     "title": "Utilizadores",

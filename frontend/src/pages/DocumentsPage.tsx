@@ -6,9 +6,20 @@ import { listDocuments } from "@/api/documents";
 import { listTemplates } from "@/api/forms";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { StatusBadge } from "@/components/StatusBadge";
 import { dateLocale } from "@/i18n";
 
 const STATUSES = ["", "GENERATED", "CONVERTING", "COMPLETED", "FAILED"] as const;
+
+function documentStatusLabel(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  status: string | null | undefined,
+): string {
+  if (!status) return "—";
+  const key = `documents.statusLabel.${status}`;
+  const label = t(key);
+  return label === key ? status : label;
+}
 
 function parseStatusParam(raw: string | null): string {
   if (!raw) return "";
@@ -97,7 +108,7 @@ export function DocumentsPage() {
           >
             {STATUSES.map((s) => (
               <option key={s || "all"} value={s}>
-                {s || t("common.all")}
+                {s ? documentStatusLabel(t, s) : t("common.all")}
               </option>
             ))}
           </select>
@@ -151,7 +162,13 @@ export function DocumentsPage() {
                 <td className="px-4 py-3">
                   {t("documents.docVersion", { n: doc.documentVersionNumber ?? 1 })}
                 </td>
-                <td className="px-4 py-3">{doc.status}</td>
+                <td className="px-4 py-3">
+                  {doc.status ? (
+                    <StatusBadge status={doc.status} label={documentStatusLabel(t, doc.status)} />
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className="px-4 py-3">{doc.createdByName ?? "—"}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   {new Date(doc.createdAt).toLocaleString(loc)}

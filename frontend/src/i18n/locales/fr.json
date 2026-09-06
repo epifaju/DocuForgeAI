@@ -135,7 +135,12 @@
     "uploaded": "Version DOCX importee.",
     "activated": "Template {{code}} ACTIVE.",
     "archived": "Template {{code}} archive.",
-    "loadError": "Impossible de charger les templates."
+    "loadError": "Impossible de charger les templates.",
+    "statusLabel": {
+      "DRAFT": "Brouillon",
+      "ACTIVE": "Actif",
+      "ARCHIVED": "Archive"
+    }
   },
   "documents": {
     "title": "Documents",
@@ -155,7 +160,13 @@
     "docVersion": "doc v{{n}}",
     "empty": "Aucun document pour ces filtres.",
     "loadError": "Impossible de charger les documents.",
-    "back": "← Documents"
+    "back": "← Documents",
+    "statusLabel": {
+      "GENERATED": "Genere",
+      "CONVERTING": "Conversion PDF",
+      "COMPLETED": "Termine",
+      "FAILED": "Echec"
+    }
   },
   "document": {
     "title": "Document",
@@ -247,7 +258,15 @@
     "detail": "Detail",
     "empty": "Aucun lot. Cliquez sur « Nouveau lot » pour demarrer.",
     "loadError": "Impossible de charger les lots.",
-    "needFile": "Fichier et template requis"
+    "needFile": "Fichier et template requis",
+    "statusLabel": {
+      "CREATED": "Cree",
+      "VALIDATING": "Validation",
+      "PROCESSING": "En cours",
+      "COMPLETED": "Termine",
+      "PARTIALLY_FAILED": "Partiel",
+      "FAILED": "Echec"
+    }
   },
   "batchDetail": {
     "title": "Detail du lot",
@@ -274,7 +293,50 @@
     "colEntity": "Entite",
     "colStatus": "Statut",
     "colUser": "Utilisateur",
-    "denied": "Acces audit refuse ou indisponible (roles ADMIN / EDITOR)."
+    "denied": "Acces audit refuse ou indisponible (roles ADMIN / EDITOR).",
+    "statusLabel": {
+      "SUCCESS": "Succes",
+      "FAILURE": "Echec",
+      "FAILED": "Echec"
+    },
+    "actionLabel": {
+      "LOGIN": "Connexion",
+      "TEMPLATE_CREATED": "Template cree",
+      "TEMPLATE_UPDATED": "Template mis a jour",
+      "TEMPLATE_ACTIVATED": "Template active",
+      "TEMPLATE_ARCHIVED": "Template archive",
+      "TEMPLATE_DELETED": "Template supprime",
+      "TEMPLATE_VERSION_CREATED": "Version template creee",
+      "TEMPLATE_VARIABLES_UPDATED": "Variables template mises a jour",
+      "DOCUMENT_GENERATED": "Document genere",
+      "DOCUMENT_DOWNLOADED": "Document telecharge",
+      "DOCUMENT_EMAILED": "Document envoye par email",
+      "DOCUMENT_VERSION_CREATED": "Version document creee",
+      "DOCUMENT_PDF_CONVERTED": "PDF converti",
+      "DOCUMENT_PDF_FAILED": "Echec conversion PDF",
+      "DOCUMENT_DELETED": "Document supprime",
+      "AI_REQUEST": "Requete IA",
+      "BATCH_STARTED": "Lot demarre",
+      "BATCH_COMPLETED": "Lot termine",
+      "SETTINGS_CHANGED": "Parametres modifies",
+      "PASSWORD_RESET_REQUESTED": "Reinit. mot de passe demandee",
+      "PASSWORD_RESET_COMPLETED": "Reinit. mot de passe terminee",
+      "DATA_EXPORTED": "Donnees exportees",
+      "DATA_PURGED": "Donnees purgees",
+      "ACCOUNT_DELETED": "Compte supprime",
+      "PACK_UPLOADED": "Pack importe",
+      "PACK_VALIDATED": "Pack valide",
+      "PACK_VALIDATION_FAILED": "Validation pack echouee",
+      "PACK_INSTALLED": "Pack installe",
+      "PACK_INSTALLATION_FAILED": "Installation pack echouee",
+      "PACK_UPDATED": "Pack mis a jour",
+      "PACK_UNINSTALLED": "Pack desinstalle",
+      "PACK_EXPORTED": "Pack exporte",
+      "PACK_ENABLED": "Pack active",
+      "PACK_DISABLED": "Pack desactive",
+      "PACK_TEMPLATE_ENABLED": "Template pack active",
+      "PACK_TEMPLATE_DISABLED": "Template pack desactive"
+    }
   },
   "users": {
     "title": "Utilisateurs",

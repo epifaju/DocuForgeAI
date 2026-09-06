@@ -155,7 +155,10 @@ export function BatchesPage() {
                   {job.id.slice(0, 8)}…
                 </td>
                 <td className="px-4 py-3">
-                  <StatusBadge status={job.status} />
+                  <StatusBadge
+                    status={job.status}
+                    label={t(`batches.statusLabel.${job.status}`, { defaultValue: job.status })}
+                  />
                 </td>
                 <td className="px-4 py-3">
                   {t("batches.ok", { ok: job.successfulItems, total: job.totalItems })}

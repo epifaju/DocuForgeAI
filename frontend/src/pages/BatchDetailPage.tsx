@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { downloadBatchZip, getBatch, getBatchErrors } from "@/api/batches";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export function BatchDetailPage() {
   const { t } = useTranslation();
@@ -48,7 +49,12 @@ export function BatchDetailPage() {
         <div className="space-y-5">
           <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
             <p className="font-mono text-xs text-[var(--muted)]">{data.id}</p>
-            <h2 className="mt-1 text-2xl text-[var(--brand-ink)]">{data.status}</h2>
+            <div className="mt-2">
+              <StatusBadge
+                status={data.status}
+                label={t(`batches.statusLabel.${data.status}`, { defaultValue: data.status })}
+              />
+            </div>
             <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-[var(--muted)]">{t("batchDetail.total")}</dt>

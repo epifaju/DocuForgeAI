@@ -187,7 +187,10 @@ export function DashboardPage() {
                       ) : null}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <StatusBadge status={doc.status} />
+                      <StatusBadge
+                        status={doc.status}
+                        label={t(`documents.statusLabel.${doc.status}`, { defaultValue: doc.status })}
+                      />
                       <time
                         className="text-[11px] tabular-nums text-[var(--muted)]"
                         dateTime={doc.createdAt}
@@ -215,15 +218,18 @@ export function DashboardPage() {
                   style={{ animationDelay: `${260 + i * 40}ms` }}
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-xs font-medium text-[var(--brand-ink)]">
-                      {row.action}
+                    <p className="truncate text-sm font-medium text-[var(--brand-ink)]">
+                      {t(`audit.actionLabel.${row.action}`, { defaultValue: row.action })}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
                       {row.userEmail ?? "—"}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <StatusBadge status={row.status} />
+                    <StatusBadge
+                      status={row.status}
+                      label={t(`audit.statusLabel.${row.status}`, { defaultValue: row.status })}
+                    />
                     <time
                       className="text-[11px] tabular-nums text-[var(--muted)]"
                       dateTime={row.createdAt}

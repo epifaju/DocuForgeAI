@@ -212,7 +212,10 @@ export function TemplatesPage() {
                 <td className="px-4 py-3 font-medium">{tpl.name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-[var(--muted)]">{tpl.code}</td>
                 <td className="px-4 py-3">
-                  <StatusBadge status={tpl.status} />
+                  <StatusBadge
+                    status={tpl.status}
+                    label={t(`templates.statusLabel.${tpl.status}`, { defaultValue: tpl.status })}
+                  />
                 </td>
                 <td className="px-4 py-3 text-[var(--muted)]">
                   {tpl.currentVersionNumber != null ? `v${tpl.currentVersionNumber}` : "—"}

@@ -145,7 +145,10 @@ export function DocumentDetailPage() {
               <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
                 <p className="font-mono text-xs text-[var(--muted)]">{doc.reference}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <StatusBadge status={doc.status} />
+                  <StatusBadge
+                    status={doc.status}
+                    label={t(`documents.statusLabel.${doc.status}`, { defaultValue: doc.status })}
+                  />
                   <span className="text-sm text-[var(--muted)]">
                     {t("documents.docVersion", { n: doc.documentVersionNumber ?? 1 })}
                   </span>

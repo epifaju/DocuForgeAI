@@ -6,9 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ai.docuforge.auth.domain.PasswordResetToken;
+import ai.docuforge.auth.domain.PasswordResetTokenRepository;
+import ai.docuforge.auth.domain.RefreshTokenRepository;
 import ai.docuforge.auth.security.DocuForgePrincipal;
 import ai.docuforge.auth.security.JwtService;
-import ai.docuforge.auth.domain.RefreshTokenRepository;
 import ai.docuforge.domain.audit.AuditLogRepository;
 import ai.docuforge.domain.company.Company;
 import ai.docuforge.domain.company.CompanyRepository;
@@ -20,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,9 +88,13 @@ class AuthSecurityTest {
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
     @BeforeEach
     void setUp() {
         refreshTokenRepository.deleteAll();
+        passwordResetTokenRepository.deleteAll();
         auditLogRepository.deleteAll();
         userAccountRepository.deleteAll();
         companyRepository.deleteAll();
@@ -116,6 +123,16 @@ class AuthSecurityTest {
         viewer.setEnabled(true);
         viewer.getRoles().add(roleRepository.findByCode(RoleCode.VIEWER.name()).orElseThrow());
         userAccountRepository.save(viewer);
+
+        UserAccount disabled = new UserAccount();
+        disabled.setCompany(company);
+        disabled.setEmail("disabled@authco.test");
+        disabled.setPasswordHash(passwordEncoder.encode("DisabledPass123!"));
+        disabled.setFirstName("Dan");
+        disabled.setLastName("Disabled");
+        disabled.setEnabled(false);
+        disabled.getRoles().add(roleRepository.findByCode(RoleCode.USER.name()).orElseThrow());
+        userAccountRepository.save(disabled);
     }
 
     @Test
@@ -225,6 +242,67 @@ class AuthSecurityTest {
                                 {"companyIdentifier":"authco","email":"admin@authco.test","password":"nope"}
                                 """))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void disabledUserCannotLogin() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"companyIdentifier":"authco","email":"disabled@authco.test","password":"DisabledPass123!"}
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void forgotPasswordAcceptsAndResetPasswordUpdatesCredentials() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"companyIdentifier":"authco","email":"unknown@authco.test"}
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"companyIdentifier":"authco","email":"admin@authco.test"}
+                                """))
+                .andExpect(status().isOk());
+
+        assertThat(passwordResetTokenRepository.count()).isEqualTo(1);
+
+        UserAccount admin = userAccountRepository
+                .findByCompanyIdentifierAndEmail("authco", "admin@authco.test")
+                .orElseThrow();
+        String rawToken = "reset." + UUID.randomUUID();
+        PasswordResetToken stored = new PasswordResetToken();
+        stored.setUser(admin);
+        stored.setTokenHash(AuthService.hash(rawToken));
+        stored.setExpiresAt(Instant.now().plusSeconds(600));
+        passwordResetTokenRepository.deleteAll();
+        passwordResetTokenRepository.save(stored);
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"%s","newPassword":"BrandNewPass123!"}
+                                """.formatted(rawToken)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"companyIdentifier":"authco","email":"admin@authco.test","password":"AdminPass123!"}
+                                """))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"companyIdentifier":"authco","email":"admin@authco.test","password":"BrandNewPass123!"}
+                                """))
+                .andExpect(status().isOk());
     }
 
     private JsonNode login(String company, String email, String password) throws Exception {

@@ -13,7 +13,9 @@ import ai.docuforge.businesspack.schema.DbpfSchemaSupport;
 import ai.docuforge.businesspack.template.PackTemplateMetadataParser;
 import ai.docuforge.businesspack.template.PackTemplateValidator;
 import ai.docuforge.config.PackProperties;
+import ai.docuforge.security.antivirus.AntivirusScanner;
 import ai.docuforge.security.antivirus.NoOpAntivirusScanner;
+import ai.docuforge.storage.StorageException;
 import ai.docuforge.template.parser.DocxVariableParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
@@ -30,6 +32,7 @@ import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.http.HttpStatus;
 
 class PackValidationServiceTest {
 
@@ -365,6 +368,259 @@ class PackValidationServiceTest {
                 .contains("pack/");
         assertThat(contentReader.resolveRootPrefix(List.of("a/manifest.json", "b/manifest.json")))
                 .isEmpty();
+    }
+
+    @Test
+    void abortsEarlyWhenAntivirusDetectsMalware() throws Exception {
+        AntivirusScanner malwareScanner = (file, originalFilename) -> {
+            throw new StorageException("MALWARE_DETECTED", HttpStatus.UNPROCESSABLE_ENTITY, "error.antivirus.malware");
+        };
+        ObjectMapper mapper = new ObjectMapper();
+        PackProperties props = new PackProperties(
+                true, 10, 50, 100, 20, 10, 50, 24, "0.1.0", Set.of("json", "docx", "txt", "png", "md", "csv")
+        );
+        PackValidationService guarded = new PackValidationService(
+                new PackArchiveInspector(props),
+                contentReader,
+                new PackManifestValidator(new PackManifestParser(mapper), new DbpfSchemaSupport(mapper)),
+                new PackCompatibilityService(props),
+                checksumValidator,
+                new PackTemplateValidator(new DocxVariableParser(), new PackTemplateMetadataParser(new DbpfSchemaSupport(mapper))),
+                malwareScanner,
+                mapper
+        );
+
+        String metadata = """
+                {
+                  "schemaVersion": "DBPF-TEMPLATE-1",
+                  "code": "DEMO_QUOTE",
+                  "name": "Demo Quote",
+                  "version": "1.0.0",
+                  "outputFormats": ["DOCX"],
+                  "variables": [
+                    {"key": "client.name", "label": "Client", "type": "TEXT", "required": true, "order": 1}
+                  ]
+                }
+                """;
+        String manifest = """
+                {
+                  "schemaVersion": "1.0",
+                  "packId": "demo",
+                  "packVersion": "1.0.0",
+                  "minDocuforgeVersion": "0.1.0",
+                  "templates": [
+                    {"key": "demo", "path": "templates/demo.docx", "metadataPath": "metadata/demo.json"}
+                  ]
+                }
+                """;
+        byte[] docx = docxWithText("Hello {{client.name}}");
+        Path zip = tempDir.resolve("malware.zip");
+        try (ZipArchiveOutputStream out = new ZipArchiveOutputStream(Files.newOutputStream(zip))) {
+            put(out, "manifest.json", manifest.getBytes(StandardCharsets.UTF_8));
+            put(out, "templates/demo.docx", docx);
+            put(out, "metadata/demo.json", metadata.getBytes(StandardCharsets.UTF_8));
+        }
+
+        PackValidationReport report = guarded.validate(zip);
+        assertThat(report.valid()).isFalse();
+        assertThat(report.issues()).anyMatch(i -> "MALWARE_DETECTED".equals(i.code()));
+    }
+
+    @Test
+    void archiveWithoutResolvableRootFailsEarly() throws Exception {
+        byte[] docx = docxWithText("{{client.name}}");
+        Path zip = tempDir.resolve("no-manifest.zip");
+        try (ZipArchiveOutputStream out = new ZipArchiveOutputStream(Files.newOutputStream(zip))) {
+            put(out, "templates/demo.docx", docx);
+            put(out, "metadata/demo.json", minimalMetadata().getBytes(StandardCharsets.UTF_8));
+        }
+
+        PackValidationReport report = service.validate(zip);
+        assertThat(report.valid()).isFalse();
+        // Without a discoverable manifest.json root, content open fails before PACK_MANIFEST_MISSING.
+        assertThat(report.issues()).anyMatch(i -> "PACK_ARCHIVE_INVALID".equals(i.code()));
+    }
+
+    @Test
+    void emptyPromptAndInvalidJsonSampleFail() throws Exception {
+        byte[] docx = docxWithText("{{client.name}}");
+        byte[] metadataBytes = minimalMetadata().getBytes(StandardCharsets.UTF_8);
+        byte[] emptyPrompt = "   \n".getBytes(StandardCharsets.UTF_8);
+        byte[] badSample = "not-json".getBytes(StandardCharsets.UTF_8);
+        byte[] csvSample = "name\nACME\n".getBytes(StandardCharsets.UTF_8);
+
+        String manifest = """
+                {
+                  "schemaVersion": "DBPF-1",
+                  "id": "com.docuforge.pack.promptsample",
+                  "name": "PromptSample",
+                  "slug": "prompt-sample",
+                  "version": "1.0.0",
+                  "type": "CUSTOM",
+                  "description": "Prompt and sample fixture",
+                  "publisher": { "id": "docuforge", "name": "DocuForge AI" },
+                  "compatibility": { "minimumDocuForgeVersion": "0.1.0" },
+                  "locales": ["fr-FR"],
+                  "defaultLocale": "fr-FR",
+                  "templates": [
+                    {
+                      "code": "DEMO_QUOTE",
+                      "name": "Demo Quote",
+                      "version": "1.0.0",
+                      "templateFile": "templates/demo.docx",
+                      "metadataFile": "metadata/demo.json"
+                    }
+                  ],
+                  "prompts": [
+                    { "code": "EMPTY_PROMPT", "version": "1.0.0", "file": "prompts/empty.txt" }
+                  ],
+                  "samples": [
+                    { "code": "BAD_JSON", "type": "JSON", "file": "samples/bad.json", "templateCode": "DEMO_QUOTE" },
+                    { "code": "CSV_OK", "type": "CSV", "file": "samples/ok.csv", "templateCode": "DEMO_QUOTE" }
+                  ],
+                  "checksums": {
+                    "templates/demo.docx": "%s",
+                    "metadata/demo.json": "%s",
+                    "prompts/empty.txt": "%s",
+                    "samples/bad.json": "%s",
+                    "samples/ok.csv": "%s"
+                  }
+                }
+                """.formatted(
+                checksumValidator.digestPrefixed(docx),
+                checksumValidator.digestPrefixed(metadataBytes),
+                checksumValidator.digestPrefixed(emptyPrompt),
+                checksumValidator.digestPrefixed(badSample),
+                checksumValidator.digestPrefixed(csvSample)
+        );
+
+        Path zip = tempDir.resolve("prompt-sample.zip");
+        try (ZipArchiveOutputStream out = new ZipArchiveOutputStream(Files.newOutputStream(zip))) {
+            put(out, "manifest.json", manifest.getBytes(StandardCharsets.UTF_8));
+            put(out, "templates/demo.docx", docx);
+            put(out, "metadata/demo.json", metadataBytes);
+            put(out, "prompts/empty.txt", emptyPrompt);
+            put(out, "samples/bad.json", badSample);
+            put(out, "samples/ok.csv", csvSample);
+        }
+
+        PackValidationReport report = service.validate(zip);
+        assertThat(report.valid()).isFalse();
+        assertThat(report.issues()).anyMatch(i -> "PACK_PROMPT_MISSING".equals(i.code()));
+        assertThat(report.issues()).anyMatch(i -> "error.pack.sample_invalid".equals(i.message()));
+    }
+
+    @Test
+    void missingPreviewFileFails() throws Exception {
+        byte[] docx = docxWithText("{{client.name}}");
+        byte[] metadataBytes = minimalMetadata().getBytes(StandardCharsets.UTF_8);
+        String manifest = """
+                {
+                  "schemaVersion": "DBPF-1",
+                  "id": "com.docuforge.pack.preview",
+                  "name": "Preview",
+                  "slug": "preview",
+                  "version": "1.0.0",
+                  "type": "CUSTOM",
+                  "description": "Missing preview fixture",
+                  "publisher": { "id": "docuforge", "name": "DocuForge AI" },
+                  "compatibility": { "minimumDocuForgeVersion": "0.1.0" },
+                  "locales": ["fr-FR"],
+                  "defaultLocale": "fr-FR",
+                  "templates": [
+                    {
+                      "code": "DEMO_QUOTE",
+                      "name": "Demo Quote",
+                      "version": "1.0.0",
+                      "templateFile": "templates/demo.docx",
+                      "metadataFile": "metadata/demo.json",
+                      "previewFile": "previews/demo.png"
+                    }
+                  ],
+                  "checksums": {
+                    "templates/demo.docx": "%s",
+                    "metadata/demo.json": "%s",
+                    "previews/demo.png": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                }
+                """.formatted(
+                checksumValidator.digestPrefixed(docx),
+                checksumValidator.digestPrefixed(metadataBytes)
+        );
+
+        Path zip = tempDir.resolve("preview.zip");
+        try (ZipArchiveOutputStream out = new ZipArchiveOutputStream(Files.newOutputStream(zip))) {
+            put(out, "manifest.json", manifest.getBytes(StandardCharsets.UTF_8));
+            put(out, "templates/demo.docx", docx);
+            put(out, "metadata/demo.json", metadataBytes);
+        }
+
+        PackValidationReport report = service.validate(zip);
+        assertThat(report.valid()).isFalse();
+        assertThat(report.issues()).anyMatch(i ->
+                "PACK_FILE_MISSING".equals(i.code()) && "previews/demo.png".equals(i.file()));
+    }
+
+    @Test
+    void undeclaredChecksumIsWarningOnValidPack() throws Exception {
+        byte[] docx = docxWithText("{{client.name}}");
+        byte[] metadataBytes = minimalMetadata().getBytes(StandardCharsets.UTF_8);
+        String manifest = """
+                {
+                  "schemaVersion": "DBPF-1",
+                  "id": "com.docuforge.pack.warnsum",
+                  "name": "Warnsum",
+                  "slug": "warnsum",
+                  "version": "1.0.0",
+                  "type": "CUSTOM",
+                  "description": "Undeclared checksum fixture",
+                  "publisher": { "id": "docuforge", "name": "DocuForge AI" },
+                  "compatibility": { "minimumDocuForgeVersion": "0.1.0" },
+                  "locales": ["fr-FR"],
+                  "defaultLocale": "fr-FR",
+                  "templates": [
+                    {
+                      "code": "DEMO_QUOTE",
+                      "name": "Demo Quote",
+                      "version": "1.0.0",
+                      "templateFile": "templates/demo.docx",
+                      "metadataFile": "metadata/demo.json"
+                    }
+                  ],
+                  "checksums": {
+                    "templates/demo.docx": "%s"
+                  }
+                }
+                """.formatted(checksumValidator.digestPrefixed(docx));
+
+        Path zip = tempDir.resolve("warnsum.zip");
+        try (ZipArchiveOutputStream out = new ZipArchiveOutputStream(Files.newOutputStream(zip))) {
+            put(out, "manifest.json", manifest.getBytes(StandardCharsets.UTF_8));
+            put(out, "templates/demo.docx", docx);
+            put(out, "metadata/demo.json", metadataBytes);
+        }
+
+        PackValidationReport report = service.validate(zip);
+        assertThat(report.valid()).isTrue();
+        assertThat(report.issues()).anyMatch(i ->
+                i.severity() == PackValidationSeverity.WARNING
+                        && "PACK_MANIFEST_CHECKSUM_UNDECLARED".equals(i.code())
+                        && "metadata/demo.json".equals(i.file()));
+    }
+
+    private static String minimalMetadata() {
+        return """
+                {
+                  "schemaVersion": "DBPF-TEMPLATE-1",
+                  "code": "DEMO_QUOTE",
+                  "name": "Demo Quote",
+                  "version": "1.0.0",
+                  "outputFormats": ["DOCX"],
+                  "variables": [
+                    {"key": "client.name", "label": "Client", "type": "TEXT", "required": true, "order": 1}
+                  ]
+                }
+                """;
     }
 
     private static byte[] docxWithText(String text) throws Exception {

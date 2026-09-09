@@ -172,6 +172,20 @@ class BatchGenerationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         assertThat(zip.getResponse().getContentAsByteArray().length).isGreaterThan(50);
+
+        MvcResult errorsCsv = mockMvc.perform(get("/api/v1/batches/" + jobId + "/errors/download")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(new String(errorsCsv.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8))
+                .contains("Email invalide");
+
+        mockMvc.perform(get("/api/v1/batches")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()").value(1))
+                .andExpect(jsonPath("$.data.items[0].id").value(jobId.toString()));
+
         assertThat(generatedDocumentRepository.count()).isEqualTo(2);
     }
 

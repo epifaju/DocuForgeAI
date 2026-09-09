@@ -1,16 +1,16 @@
-package ai.docuforge.ai;
+package ai.docuforge.document;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ai.docuforge.auth.domain.RefreshTokenRepository;
-import ai.docuforge.domain.ai.AiRequestRepository;
 import ai.docuforge.domain.audit.AuditLogRepository;
 import ai.docuforge.domain.company.Company;
 import ai.docuforge.domain.company.CompanyRepository;
+import ai.docuforge.domain.document.GeneratedDocument;
 import ai.docuforge.domain.document.GeneratedDocumentRepository;
 import ai.docuforge.domain.template.TemplateRepository;
 import ai.docuforge.domain.template.TemplateVariableRepository;
@@ -19,6 +19,7 @@ import ai.docuforge.domain.user.RoleCode;
 import ai.docuforge.domain.user.RoleRepository;
 import ai.docuforge.domain.user.UserAccount;
 import ai.docuforge.domain.user.UserAccountRepository;
+import ai.docuforge.storage.StorageProvider;
 import ai.docuforge.template.DocxTestFixtures;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,9 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -46,7 +44,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
-class AiAssistTest {
+class DocumentDeleteApiTest {
 
     private static final String DOCX_MIME =
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -64,26 +62,8 @@ class AiAssistTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("docuforge.bootstrap.enabled", () -> "false");
         registry.add("docuforge.jwt.secret", () -> "test-secret-key-with-at-least-32-characters!!");
-        registry.add("docuforge.storage.root", () -> "target/test-storage-ai");
+        registry.add("docuforge.storage.root", () -> "target/test-storage-doc-delete");
         registry.add("docuforge.pdf.enabled", () -> "false");
-        registry.add("docuforge.ai.enabled", () -> "true");
-        registry.add("docuforge.ai.provider", () -> "stub");
-        registry.add("docuforge.ai.ollama-model", () -> "stub-model");
-    }
-
-    @TestConfiguration
-    static class StubAiConfig {
-        @Bean
-        @Primary
-        AIProvider aiProvider() {
-            return request -> new AIResponse(
-                    "STUB:" + request.operation() + ":" + (request.text() == null ? "" : request.text()),
-                    "stub",
-                    "stub-model",
-                    PromptCatalog.PROMPT_VERSION,
-                    12L
-            );
-        }
     }
 
     @Autowired private MockMvc mockMvc;
@@ -93,21 +73,22 @@ class AiAssistTest {
     @Autowired private RoleRepository roleRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private AuditLogRepository auditLogRepository;
-    @Autowired private AiRequestRepository aiRequestRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private TemplateRepository templateRepository;
     @Autowired private TemplateVersionRepository templateVersionRepository;
     @Autowired private TemplateVariableRepository templateVariableRepository;
     @Autowired private GeneratedDocumentRepository generatedDocumentRepository;
+    @Autowired private StorageProvider storageProvider;
 
     private String adminToken;
+    private String ownerToken;
+    private String otherToken;
     private UUID templateId;
 
     @BeforeEach
     void setUp() throws Exception {
         refreshTokenRepository.deleteAll();
         auditLogRepository.deleteAll();
-        aiRequestRepository.deleteAll();
         generatedDocumentRepository.deleteAll();
         templateVariableRepository.deleteAll();
         templateRepository.findAll().forEach(t -> {
@@ -120,126 +101,97 @@ class AiAssistTest {
         companyRepository.deleteAll();
 
         Company company = new Company();
-        company.setName("Ai Co");
-        company.setIdentifier("ai-co");
+        company.setName("Delete Co");
+        company.setIdentifier("delete-co");
         company = companyRepository.save(company);
 
-        UserAccount admin = new UserAccount();
-        admin.setCompany(company);
-        admin.setEmail("admin@ai-co.test");
-        admin.setPasswordHash(passwordEncoder.encode("AdminPass123!"));
-        admin.setFirstName("Ada");
-        admin.setLastName("Admin");
-        admin.setEnabled(true);
-        admin.getRoles().add(roleRepository.findByCode(RoleCode.ADMIN.name()).orElseThrow());
-        userAccountRepository.save(admin);
+        saveUser(company, "admin@delete-co.test", "AdminPass123!", RoleCode.ADMIN);
+        saveUser(company, "owner@delete-co.test", "OwnerPass123!", RoleCode.USER);
+        saveUser(company, "other@delete-co.test", "OtherPass123!", RoleCode.USER);
 
-        adminToken = login("ai-co", "admin@ai-co.test", "AdminPass123!");
-        templateId = createActiveTemplate();
+        adminToken = login("admin@delete-co.test", "AdminPass123!");
+        ownerToken = login("owner@delete-co.test", "OwnerPass123!");
+        otherToken = login("other@delete-co.test", "OtherPass123!");
+        templateId = createActiveTemplate(adminToken);
     }
 
     @Test
-    void rewriteReturnsStubContent() throws Exception {
-        mockMvc.perform(post("/api/v1/ai/rewrite")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"text":"bonjour le monde"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.result").value("STUB:REWRITE:bonjour le monde"))
-                .andExpect(jsonPath("$.data.operation").value("REWRITE"))
-                .andExpect(jsonPath("$.data.provider").value("stub"));
+    void ownerCanDeleteOwnDocumentAndStorageKeyIsRemoved() throws Exception {
+        UUID docId = generate(ownerToken);
+        GeneratedDocument before = generatedDocumentRepository.findById(docId).orElseThrow();
+        String storageKey = before.getDocxStorageKey();
+        assertThat(storageProvider.exists(storageKey)).isTrue();
+
+        mockMvc.perform(delete("/api/v1/documents/" + docId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(status().isOk());
+
+        assertThat(generatedDocumentRepository.findById(docId)).isEmpty();
+        assertThat(storageProvider.exists(storageKey)).isFalse();
     }
 
     @Test
-    void formalizeSummarizeAndGenerateReturnStubContent() throws Exception {
-        mockMvc.perform(post("/api/v1/ai/formalize")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"text":"salut"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.result").value("STUB:FORMALIZE:salut"))
-                .andExpect(jsonPath("$.data.operation").value("FORMALIZE"));
+    void otherUserCannotDeleteDocument() throws Exception {
+        UUID docId = generate(ownerToken);
 
-        mockMvc.perform(post("/api/v1/ai/summarize")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"text":"long texte"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.result").value("STUB:SUMMARIZE:long texte"))
-                .andExpect(jsonPath("$.data.operation").value("SUMMARIZE"));
-
-        mockMvc.perform(post("/api/v1/ai/generate")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"instruction":"ecrire un paragraphe"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.result").value("STUB:GENERATE_PARAGRAPH:"))
-                .andExpect(jsonPath("$.data.operation").value("GENERATE_PARAGRAPH"));
-    }
-
-    @Test
-    void viewerCannotPostAiAssist() throws Exception {
-        UserAccount viewer = new UserAccount();
-        viewer.setCompany(companyRepository.findAll().getFirst());
-        viewer.setEmail("viewer@ai-co.test");
-        viewer.setPasswordHash(passwordEncoder.encode("ViewerPass123!"));
-        viewer.setFirstName("Vie");
-        viewer.setLastName("Wer");
-        viewer.setEnabled(true);
-        viewer.getRoles().add(roleRepository.findByCode(RoleCode.VIEWER.name()).orElseThrow());
-        userAccountRepository.save(viewer);
-        String viewerToken = login("ai-co", "viewer@ai-co.test", "ViewerPass123!");
-
-        mockMvc.perform(post("/api/v1/ai/rewrite")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(viewerToken))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"text":"bonjour"}
-                                """))
+        mockMvc.perform(delete("/api/v1/documents/" + docId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(otherToken)))
                 .andExpect(status().isForbidden());
+
+        assertThat(generatedDocumentRepository.findById(docId)).isPresent();
     }
 
     @Test
-    void generateStillWorksWhenAiEnabled() throws Exception {
-        mockMvc.perform(post("/api/v1/documents/generate")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+    void adminCanDeleteAnotherUsersDocument() throws Exception {
+        UUID docId = generate(ownerToken);
+
+        mockMvc.perform(delete("/api/v1/documents/" + docId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isOk());
+
+        assertThat(generatedDocumentRepository.findById(docId)).isEmpty();
+    }
+
+    private UUID generate(String token) throws Exception {
+        MvcResult generated = mockMvc.perform(post("/api/v1/documents/generate")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "templateId": "%s",
+                                  "title": "Doc",
                                   "data": {
                                     "client.firstName": "Alice",
-                                    "client.email": "a@example.com",
+                                    "client.email": "alice@example.com",
                                     "invoice.total": 10
                                   }
                                 }
                                 """.formatted(templateId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("GENERATED"));
+                .andReturn();
+        return UUID.fromString(
+                objectMapper.readTree(generated.getResponse().getContentAsString()).path("data").path("id").asText()
+        );
     }
 
-    @Test
-    void statusShowsEnabled() throws Exception {
-        mockMvc.perform(get("/api/v1/ai/status")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.enabled").value(true));
+    private void saveUser(Company company, String email, String password, RoleCode role) {
+        UserAccount account = new UserAccount();
+        account.setCompany(company);
+        account.setEmail(email);
+        account.setPasswordHash(passwordEncoder.encode(password));
+        account.setFirstName("First");
+        account.setLastName("Last");
+        account.setEnabled(true);
+        account.getRoles().add(roleRepository.findByCode(role.name()).orElseThrow());
+        userAccountRepository.save(account);
     }
 
-    private UUID createActiveTemplate() throws Exception {
+    private UUID createActiveTemplate(String token) throws Exception {
         MvcResult created = mockMvc.perform(post("/api/v1/templates")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"code":"ai_tpl","name":"AI template"}
+                                {"code":"del_tpl","name":"Delete template"}
                                 """))
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -252,20 +204,20 @@ class AiAssistTest {
         );
         mockMvc.perform(multipart("/api/v1/templates/" + id + "/versions")
                         .file(new MockMultipartFile("file", "t.docx", DOCX_MIME, docx))
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
                 .andExpect(status().isCreated());
         mockMvc.perform(post("/api/v1/templates/" + id + "/activate")
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
                 .andExpect(status().isOk());
         return id;
     }
 
-    private String login(String company, String email, String password) throws Exception {
+    private String login(String email, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"companyIdentifier":"%s","email":"%s","password":"%s"}
-                                """.formatted(company, email, password)))
+                                {"companyIdentifier":"delete-co","email":"%s","password":"%s"}
+                                """.formatted(email, password)))
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).get("data");

@@ -1,6 +1,9 @@
 package ai.docuforge.businesspack.template;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ai.docuforge.businesspack.manifest.PackValidationIssue;
 import ai.docuforge.businesspack.manifest.PackValidationSeverity;
@@ -13,11 +16,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 class PackTemplateValidatorTest {
 
@@ -218,6 +225,92 @@ class PackTemplateValidatorTest {
         assertThat(issues).anyMatch(i ->
                 "PACK_TEMPLATE_INVALID".equals(i.code())
                         && "error.pack.template_code_mismatch".equals(i.message()));
+    }
+
+    @Test
+    void emptyOrNonZipDocxIsInvalidStructure() {
+        String metadata = minimalMetadata("DEMO_QUOTE");
+        byte[] metaBytes = metadata.getBytes(StandardCharsets.UTF_8);
+
+        assertThat(validator.validateDocxStructure("templates/demo.docx", "DEMO_QUOTE", null))
+                .anyMatch(i -> "PACK_TEMPLATE_INVALID".equals(i.code()));
+        assertThat(validator.validateDocxStructure("templates/demo.docx", "DEMO_QUOTE", new byte[0]))
+                .anyMatch(i -> "PACK_TEMPLATE_INVALID".equals(i.code()));
+        assertThat(validator.validateDocxStructure(
+                        "templates/demo.docx", "DEMO_QUOTE", "%PDF-1.4".getBytes(StandardCharsets.US_ASCII)))
+                .anyMatch(i -> "PACK_TEMPLATE_INVALID".equals(i.code()));
+
+        assertThat(validator.validate("DEMO_QUOTE", "t.docx", null, "m.json", metaBytes))
+                .anyMatch(i -> i.severity() == PackValidationSeverity.ERROR);
+        assertThat(validator.validate("DEMO_QUOTE", "t.docx", null, "m.json", metaBytes))
+                .noneMatch(i -> "PACK_TEMPLATE_UNDECLARED_VARIABLE".equals(i.code()));
+    }
+
+    @Test
+    void zipMissingRequiredOoxmlPartsIsInvalid() throws Exception {
+        byte[] zip = zipWithEntries(
+                "readme.txt", "hello".getBytes(StandardCharsets.UTF_8)
+        );
+        assertThat(validator.validateDocxStructure("templates/demo.docx", "DEMO_QUOTE", zip))
+                .anyMatch(i -> "PACK_TEMPLATE_INVALID".equals(i.code()));
+
+        byte[] partial = zipWithEntries(
+                "[Content_Types].xml", "<Types/>".getBytes(StandardCharsets.UTF_8),
+                "word/styles.xml", "<styles/>".getBytes(StandardCharsets.UTF_8)
+        );
+        assertThat(validator.validateDocxStructure("templates/demo.docx", "DEMO_QUOTE", partial))
+                .anyMatch(i -> "PACK_TEMPLATE_INVALID".equals(i.code()));
+    }
+
+    @Test
+    void docxParserFailureMapsToTemplateInvalid() throws Exception {
+        DocxVariableParser failing = mock(DocxVariableParser.class);
+        when(failing.parse(any(byte[].class)))
+                .thenThrow(new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "bad"));
+        PackTemplateValidator guarded = new PackTemplateValidator(failing, metadataParser);
+
+        byte[] docx = docxWithText("{{client.name}}");
+        List<PackValidationIssue> issues = guarded.validate(
+                "DEMO_QUOTE",
+                "templates/demo.docx",
+                docx,
+                "metadata/demo.json",
+                minimalMetadata("DEMO_QUOTE").getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertThat(issues).anyMatch(i ->
+                "PACK_TEMPLATE_INVALID".equals(i.code())
+                        && "error.pack.template_invalid".equals(i.message()));
+        assertThat(issues).noneMatch(i -> "PACK_TEMPLATE_UNDECLARED_VARIABLE".equals(i.code()));
+    }
+
+    private static String minimalMetadata(String code) {
+        return """
+                {
+                  "schemaVersion": "DBPF-TEMPLATE-1",
+                  "code": "%s",
+                  "name": "Demo Quote",
+                  "version": "1.0.0",
+                  "outputFormats": ["DOCX"],
+                  "variables": [
+                    {"key": "client.name", "label": "Client", "type": "TEXT", "required": true, "order": 1}
+                  ]
+                }
+                """.formatted(code);
+    }
+
+    private static byte[] zipWithEntries(Object... nameAndData) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(bos)) {
+            for (int i = 0; i < nameAndData.length; i += 2) {
+                String name = (String) nameAndData[i];
+                byte[] data = (byte[]) nameAndData[i + 1];
+                zos.putNextEntry(new ZipEntry(name));
+                zos.write(data);
+                zos.closeEntry();
+            }
+        }
+        return bos.toByteArray();
     }
 
     private static byte[] docxWithText(String text) throws Exception {

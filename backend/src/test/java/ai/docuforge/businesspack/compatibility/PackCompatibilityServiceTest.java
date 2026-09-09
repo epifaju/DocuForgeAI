@@ -107,4 +107,40 @@ class PackCompatibilityServiceTest {
         );
         assertThat(issues).isEmpty();
     }
+
+    @Test
+    void nullOrBlankCompatibilityAndInvalidVersionsAreIncompatible() {
+        assertThat(service.validatePlatformCompatibility(null))
+                .anyMatch(i -> "PACK_INCOMPATIBLE_DOCUFORGE_VERSION".equals(i.code()));
+        assertThat(service.validatePlatformCompatibility(new PackManifest.Compatibility("  ", null)))
+                .anyMatch(i -> "PACK_INCOMPATIBLE_DOCUFORGE_VERSION".equals(i.code()));
+        assertThat(service.validatePlatformCompatibility(
+                        new PackManifest.Compatibility("1.0.0", null), "not-a-version"))
+                .anyMatch(i -> "PACK_INCOMPATIBLE_DOCUFORGE_VERSION".equals(i.code()));
+        assertThat(service.validatePlatformCompatibility(
+                        new PackManifest.Compatibility("bad", null)))
+                .anyMatch(i -> "PACK_INCOMPATIBLE_DOCUFORGE_VERSION".equals(i.code()));
+        assertThat(service.validatePlatformCompatibility(
+                        new PackManifest.Compatibility("1.0.0", "also-bad")))
+                .anyMatch(i -> "PACK_INCOMPATIBLE_DOCUFORGE_VERSION".equals(i.code()));
+    }
+
+    @Test
+    void maxLiteralNullMeansNoMaximum() {
+        assertThat(service.validatePlatformCompatibility(
+                new PackManifest.Compatibility("0.1.0", "null")
+        )).isEmpty();
+    }
+
+    @Test
+    void downgradeUpgradeAndClassifyHandleBlankAndUnknown() {
+        assertThat(service.isDowngrade("", "1.0.0")).isFalse();
+        assertThat(service.isUpgrade("1.0.0", " ")).isFalse();
+        assertThat(service.isDowngrade("bad", "1.0.0")).isFalse();
+        assertThat(service.isUpgrade("1.0.0-SNAPSHOT", "1.1.0")).isTrue();
+        assertThat(service.classifyUpdateKind("1.0.0", "1.0.0")).isEqualTo("SAME");
+        assertThat(service.classifyUpdateKind("1.0.0", "2.0.0")).isEqualTo("MAJOR");
+        assertThat(service.classifyUpdateKind("1.0.0", "1.2.0")).isEqualTo("MINOR");
+        assertThat(service.classifyUpdateKind("bad", "1.0.0")).isEqualTo("UNKNOWN");
+    }
 }

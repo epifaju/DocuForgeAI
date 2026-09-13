@@ -2,6 +2,9 @@
 
 Guide d’installation self-hosted — Phase 21 / PRD §101.25.
 
+> **Windows 11 + Docker Desktop (WSL2)** : voir [`DEPLOYMENT_WINDOWS.md`](../DEPLOYMENT_WINDOWS.md).  
+> **Installeur grand public (consulat)** : voir [`installer/README.md`](../installer/README.md) — lancement, accès UI, FAQ images/Rancher.
+
 ## Prérequis
 
 - Docker Desktop (Windows/macOS) **ou** Docker Engine + Compose v2+

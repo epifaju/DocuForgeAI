@@ -112,6 +112,13 @@ tests/e2e/fixtures/e2e-template.docx
 *.pid
 docker-compose.override.yml
 
+# --- Windows installer -------------------------------------------------------
+installer/dist/
+installer/payload/images/*.tar
+installer/payload/images/*.tar.gz
+installer/payload/prereqs/*.exe
+installer/payload/prereqs/*.msi
+
 # --- Cursor / local agent ----------------------------------------------------
 .cursor/
 !.cursor/rules/

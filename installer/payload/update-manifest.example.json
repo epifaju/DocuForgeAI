@@ -1,0 +1,10 @@
+{
+  "version": "0.1.0",
+  "channel": "stable",
+  "notes": "Example update manifest — host this JSON on your update server.",
+  "images": [
+    "docuforge-ai-backend:0.1.0",
+    "docuforge-ai-frontend:0.1.0",
+    "docuforge-ai-libreoffice:0.1.0"
+  ]
+}

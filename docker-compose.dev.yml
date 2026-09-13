@@ -1,9 +1,11 @@
 # DocuForge AI — development overrides (Phase 1)
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Avec IA :
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile ai up -d
 #
-# Relative bind mounts for Windows + Docker Desktop compatibility.
-# No absolute host paths.
+# Force bind-mount ./storage for easy host inspection (overrides named volume default).
+# Relative paths for Windows + Docker Desktop compatibility — no absolute host paths.
 
 services:
   backend:
@@ -12,10 +14,8 @@ services:
       SPRING_PROFILES_ACTIVE: dev
     volumes:
       - ./storage:/storage
-      # Hot-reload bind mounts will be added when the Spring Boot project exists (Phase 2+)
 
   frontend:
-    # Dev server / HMR wiring arrives with the Vite project.
     environment:
       NODE_ENV: development
 

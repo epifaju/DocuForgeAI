@@ -1,0 +1,2 @@
+C:\Users\epifa\cursor-workspace\DocuForgeAI\installer\dist\tray\DocuForge.Tray.pdb
+C:\Users\epifa\cursor-workspace\DocuForgeAI\installer\dist\tray\DocuForge.Tray.exe

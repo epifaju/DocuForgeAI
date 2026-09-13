@@ -1,0 +1,13 @@
+Bienvenue dans DocuForge AI
+
+Cet assistant installe DocuForge AI sur votre poste Windows 11.
+
+Prérequis gérés automatiquement lorsque possible :
+  • WSL2 (composant Windows)
+  • Rancher Desktop (moteur de conteneurs — sans licence Docker Desktop)
+
+Vous indiquerez ensuite le nom de votre organisation, un compte administrateur,
+et si vous souhaitez activer l'assistance IA locale (optionnelle).
+
+Aucun terminal ne sera affiché. En cas de problème, utilisez « Voir les logs »
+depuis l'icône DocuForge dans la barre système.

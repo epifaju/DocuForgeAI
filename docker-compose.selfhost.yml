@@ -1,0 +1,21 @@
+# Self-host / LAN production-like (Windows Docker Desktop, no Traefik)
+# Keeps host port mappings from docker-compose.yml (FRONTEND_PORT, BACKEND_PORT, …).
+#
+# Usage:
+#   Copy-Item .env.example .env
+#   powershell -File .\scripts\secure-env.ps1 -Prod -Show
+#   # Edit .env: APP_BASE_URL, DOCUFORGE_BOOTSTRAP_* for first boot, then disable bootstrap
+#   docker compose -f docker-compose.yml -f docker-compose.selfhost.yml up -d
+#   # Optional AI:
+#   docker compose -f docker-compose.yml -f docker-compose.selfhost.yml --profile ai up -d
+#
+# See DEPLOYMENT_WINDOWS.md.
+
+services:
+  backend:
+    environment:
+      APP_ENV: production
+      SPRING_PROFILES_ACTIVE: docker,prod
+      DOCUFORGE_BOOTSTRAP_ENABLED: ${DOCUFORGE_BOOTSTRAP_ENABLED:-false}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5174}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}

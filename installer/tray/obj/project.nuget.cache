@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "Ykt87qYDQ80=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\epifa\\cursor-workspace\\DocuForgeAI\\installer\\tray\\DocuForge.Tray.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\epifa\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.31\\microsoft.net.illink.tasks.8.0.31.nupkg.sha512",
+    "C:\\Users\\epifa\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.31\\microsoft.netcore.app.runtime.win-x64.8.0.31.nupkg.sha512",
+    "C:\\Users\\epifa\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.31\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.31.nupkg.sha512",
+    "C:\\Users\\epifa\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.31\\microsoft.aspnetcore.app.runtime.win-x64.8.0.31.nupkg.sha512"
+  ],
+  "logs": []
+}

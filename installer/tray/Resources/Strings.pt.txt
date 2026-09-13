@@ -1,0 +1,13 @@
+# Portuguese strings placeholder (wire as .resx satellite in a later release)
+StatusOnline=Estado: online
+StatusOffline=Estado: offline
+StatusStarting=Estado: a iniciar…
+StatusError=Estado: erro
+OpenApp=Abrir DocuForge AI
+Start=Iniciar serviços
+Stop=Parar serviços
+Restart=Reiniciar serviços
+ViewLogs=Ver registos
+BackupDb=Cópia de segurança da base de dados…
+CheckUpdates=Procurar atualizações
+Quit=Sair

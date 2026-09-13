@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { listTemplates } from "@/api/forms";
 import {
   activateTemplate,
@@ -15,10 +15,18 @@ import { CreatePanel } from "@/components/CreatePanel";
 import { StatusBadge } from "@/components/StatusBadge";
 import { isBlank, TEMPLATE_CODE_PATTERN } from "@/lib/formValidation";
 
+const STATUSES = ["", "DRAFT", "ACTIVE", "ARCHIVED"] as const;
+
+function parseStatusParam(raw: string | null): string {
+  if (!raw) return "";
+  return (STATUSES as readonly string[]).includes(raw) ? raw : "";
+}
+
 export function TemplatesPage() {
   const { t } = useTranslation();
   const { token, canEditTemplates } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showCreate, setShowCreate] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -29,10 +37,27 @@ export function TemplatesPage() {
   const [uploadFor, setUploadFor] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const pageSize = 10;
+  const status = parseStatusParam(searchParams.get("status"));
+
+  function setStatus(next: string) {
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set("status", next);
+    else params.delete("status");
+    setSearchParams(params, { replace: true });
+  }
+
+  useEffect(() => {
+    setPage(0);
+  }, [status]);
 
   const query = useQuery({
-    queryKey: ["templates", page, pageSize],
-    queryFn: () => listTemplates(token!, { page, size: pageSize }),
+    queryKey: ["templates", page, pageSize, status || "ALL"],
+    queryFn: () =>
+      listTemplates(token!, {
+        page,
+        size: pageSize,
+        status: status || undefined,
+      }),
     enabled: !!token,
   });
 
@@ -191,6 +216,25 @@ export function TemplatesPage() {
       </CreatePanel>
 
       {message ? <p className="mb-4 text-sm text-[var(--muted)]">{message}</p> : null}
+
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <label className="block text-sm">
+          {t("templates.colStatus")}
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="mt-1 block min-w-[10rem] rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+          >
+            {STATUSES.map((s) => (
+              <option key={s || "all"} value={s}>
+                {s
+                  ? t(`templates.statusLabel.${s}`, { defaultValue: s })
+                  : t("common.all")}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       {query.isLoading ? <p>{t("common.loading")}</p> : null}
       {query.isError ? <p className="text-[var(--danger)]">{t("templates.loadError")}</p> : null}

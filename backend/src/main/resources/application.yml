@@ -29,8 +29,9 @@ spring:
     time-zone: ${DEFAULT_TIMEZONE:Europe/Paris}
   servlet:
     multipart:
-      max-file-size: ${MAX_UPLOAD_SIZE_MB:25}MB
-      max-request-size: ${MAX_UPLOAD_SIZE_MB:25}MB
+      # Must be >= PACK_MAX_UPLOAD_SIZE_MB so business-pack ZIP imports are not rejected at servlet layer.
+      max-file-size: ${MAX_UPLOAD_SIZE_MB:100}MB
+      max-request-size: ${MAX_UPLOAD_SIZE_MB:100}MB
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1028}

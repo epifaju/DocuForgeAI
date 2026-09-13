@@ -267,12 +267,16 @@ export async function uploadPackImport(token: string, file: File) {
   });
   const body = await response.json().catch(() => null);
   if (!response.ok) {
+    const fallbackMessage =
+      response.status === 413
+        ? "Fichier trop volumineux (limite d'upload du proxy ou du serveur)."
+        : "Import pack impossible.";
     throw new ApiError(
       (body as ErrorResponse) ?? {
         timestamp: new Date().toISOString(),
         status: response.status,
-        code: "REQUEST_ERROR",
-        message: "Import pack impossible.",
+        code: response.status === 413 ? "PAYLOAD_TOO_LARGE" : "REQUEST_ERROR",
+        message: fallbackMessage,
         details: [],
       },
     );

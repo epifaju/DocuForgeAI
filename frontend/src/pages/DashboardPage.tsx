@@ -109,7 +109,7 @@ export function DashboardPage() {
                   label={t("dashboard.activeTemplates")}
                   value={kpis.activeTemplates}
                   hint={t("dashboard.activeTemplatesHint")}
-                  to="/templates"
+                  to="/templates?status=ACTIVE"
                   delay="200ms"
                   className="sm:border-l"
                 />

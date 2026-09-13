@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ApiError } from "@/api/client";
 import { aiFormalize, aiGenerate, aiRewrite, aiSummarize } from "@/api/ai";
 import { useAuth } from "@/auth/AuthContext";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   value: string;
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export function AiAssistToolbar({ value, onAccept, aiMode }: Props) {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,15 +33,15 @@ export function AiAssistToolbar({ value, onAccept, aiMode }: Props) {
               : await aiGenerate(
                   token,
                   aiMode === "GENERATE_PARAGRAPH"
-                    ? "Redige un paragraphe professionnel adapte au champ du formulaire."
-                    : "Complete ce champ de facon professionnelle.",
+                    ? t("ai.promptGenerateParagraph")
+                    : t("ai.promptGenerateComplete"),
                   undefined,
                   value,
                 );
       setSuggestion(result.result);
     } catch (err) {
       setSuggestion(null);
-      setError(err instanceof ApiError ? err.message : "IA indisponible.");
+      setError(err instanceof ApiError ? err.message : t("ai.unavailable"));
     } finally {
       setBusy(false);
     }
@@ -47,62 +50,63 @@ export function AiAssistToolbar({ value, onAccept, aiMode }: Props) {
   return (
     <div className="mt-2 space-y-2">
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           disabled={busy || !value.trim()}
           onClick={() => void run("rewrite")}
-          className="rounded-lg border border-[var(--line)] px-2 py-1 text-xs disabled:opacity-40"
         >
-          Reecrire
-        </button>
-        <button
+          {t("ai.rewrite")}
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           disabled={busy || !value.trim()}
           onClick={() => void run("formalize")}
-          className="rounded-lg border border-[var(--line)] px-2 py-1 text-xs disabled:opacity-40"
         >
-          Formaliser
-        </button>
-        <button
+          {t("ai.formalize")}
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           disabled={busy || !value.trim()}
           onClick={() => void run("summarize")}
-          className="rounded-lg border border-[var(--line)] px-2 py-1 text-xs disabled:opacity-40"
         >
-          Resumer
-        </button>
-        <button
+          {t("ai.summarize")}
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           disabled={busy}
           onClick={() => void run("generate")}
-          className="rounded-lg border border-[var(--brand)] px-2 py-1 text-xs text-[var(--brand)] disabled:opacity-40"
+          className="border-[var(--brand)] text-[var(--brand)]"
         >
-          Generer
-        </button>
+          {t("ai.generate")}
+        </Button>
       </div>
-      {busy ? <p className="text-xs text-[var(--muted)]">IA en cours…</p> : null}
+      {busy ? <p className="text-xs text-[var(--muted)]">{t("ai.busy")}</p> : null}
       {error ? <p className="text-xs text-[var(--danger)]">{error}</p> : null}
       {suggestion ? (
-        <div className="rounded-xl border border-[var(--line)] bg-white p-3 text-sm">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-3 text-sm">
           <p className="whitespace-pre-wrap">{suggestion}</p>
           <div className="mt-2 flex gap-2">
-            <button
+            <Button
               type="button"
-              className="rounded-lg bg-[var(--brand)] px-3 py-1 text-xs text-white"
+              size="sm"
               onClick={() => {
                 onAccept(suggestion);
                 setSuggestion(null);
               }}
             >
-              Accepter
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-[var(--line)] px-3 py-1 text-xs"
-              onClick={() => setSuggestion(null)}
-            >
-              Rejeter
-            </button>
+              {t("ai.accept")}
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setSuggestion(null)}>
+              {t("ai.reject")}
+            </Button>
           </div>
         </div>
       ) : null}

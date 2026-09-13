@@ -74,3 +74,18 @@ export async function downloadBatchZip(token: string, id: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export async function downloadBatchErrors(token: string, id: string) {
+  const response = await apiFetch(`/api/v1/batches/${id}/errors/download`, {
+    token,
+    json: false,
+  });
+  if (!response.ok) throw new Error("Rapport d'erreurs indisponible");
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `batch-${id}-errors.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}

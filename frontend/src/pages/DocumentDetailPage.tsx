@@ -56,12 +56,12 @@ export function DocumentDetailPage() {
 
   useEffect(() => {
     if (!doc) return;
-    setSubject((prev) => prev || `Document ${doc.reference}`);
-    setMessage((prev) => prev || `Veuillez trouver ci-joint le document ${doc.reference}.`);
+    setSubject((prev) => prev || t("document.emailDefaultSubject", { reference: doc.reference }));
+    setMessage((prev) => prev || t("document.emailDefaultBody", { reference: doc.reference }));
     if (formatOptions.length > 0 && !formatOptions.includes(attachmentFormat)) {
       setAttachmentFormat(formatOptions[0]);
     }
-  }, [doc, formatOptions, attachmentFormat]);
+  }, [doc, formatOptions, attachmentFormat, t]);
 
   useEffect(() => {
     let objectUrl: string | null = null;

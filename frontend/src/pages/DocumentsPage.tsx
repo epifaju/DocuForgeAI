@@ -1,15 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { Eye, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { listDocuments } from "@/api/documents";
 import { listTemplates } from "@/api/forms";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { CardList, CardListItem } from "@/components/CardList";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { dateLocale } from "@/i18n";
+import { cn } from "@/lib/cn";
+import { formatRelative } from "@/lib/formatRelative";
 
 const STATUSES = ["", "GENERATED", "CONVERTING", "COMPLETED", "FAILED"] as const;
+
+const pillClass =
+  "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--brand-ink)] transition-colors hover:border-[var(--brand)]/40 hover:bg-[var(--brand-soft)]";
 
 function documentStatusLabel(
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -70,74 +82,135 @@ export function DocumentsPage() {
     enabled: !!token,
   });
 
+  const items = docs.data?.items ?? [];
+  const totalElements = docs.data?.totalElements ?? 0;
+
   return (
     <AppShell
       title={t("documents.title")}
       description={t("documents.description")}
       width="wide"
     >
-      <form
-        className="mb-6 grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:grid-cols-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setPage(0);
-          void docs.refetch();
-        }}
-      >
-        <label className="block text-sm sm:col-span-2">
-          {t("documents.search")}
-          <input
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPage(0);
-            }}
-            placeholder={t("documents.searchPlaceholder")}
-            className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
-          />
-        </label>
-        <label className="block text-sm">
-          {t("documents.status")}
-          <select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(0);
-            }}
-            className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
-          >
-            {STATUSES.map((s) => (
-              <option key={s || "all"} value={s}>
-                {s ? documentStatusLabel(t, s) : t("common.all")}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          {t("documents.template")}
-          <select
-            value={templateId}
-            onChange={(e) => {
-              setTemplateId(e.target.value);
-              setPage(0);
-            }}
-            className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
-          >
-            <option value="">{t("common.all")}</option>
-            {(templates.data?.items ?? []).map((tpl) => (
-              <option key={tpl.id} value={tpl.id}>
-                {tpl.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </form>
+      <Card padding="sm" className="mb-6">
+        <form
+          className="grid gap-3 md:grid-cols-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setPage(0);
+            void docs.refetch();
+          }}
+        >
+          <Field label={t("documents.search")}>
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
+                aria-hidden
+              />
+              <Input
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(0);
+                }}
+                placeholder={t("documents.searchPlaceholder")}
+                className="pl-9"
+              />
+            </div>
+          </Field>
+          <Field label={t("documents.status")}>
+            <Select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(0);
+              }}
+            >
+              {STATUSES.map((s) => (
+                <option key={s || "all"} value={s}>
+                  {s ? documentStatusLabel(t, s) : t("common.all")}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={t("documents.template")}>
+            <Select
+              value={templateId}
+              onChange={(e) => {
+                setTemplateId(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="">{t("common.all")}</option>
+              {(templates.data?.items ?? []).map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>
+                  {tpl.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </form>
+      </Card>
 
       {docs.isLoading ? <p>{t("common.loading")}</p> : null}
       {docs.isError ? <p className="text-[var(--danger)]">{t("documents.loadError")}</p> : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
-        <table className="min-w-full text-left text-sm">
+      <CardList>
+        {items.map((doc) => {
+          const failed = doc.status === "FAILED";
+          return (
+            <CardListItem
+              key={doc.id}
+              className={cn(failed && "border-[var(--danger)]/25 bg-[var(--danger-soft)]/40")}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-mono text-xs text-[var(--brand)]">{doc.reference}</p>
+                  <p className="mt-1 font-medium text-[var(--brand-ink)]">{doc.title}</p>
+                </div>
+                {doc.status ? (
+                  <StatusBadge status={doc.status} label={documentStatusLabel(t, doc.status)} />
+                ) : null}
+              </div>
+              <dl className="mt-3 grid gap-1.5 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">{t("documents.colTemplate")}</dt>
+                  <dd className="min-w-0 text-right text-[var(--ink)]">
+                    <span className="block truncate">{doc.templateName}</span>
+                    <span className="text-xs text-[var(--muted)]">{doc.templateCode}</span>
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">{t("documents.colVersion")}</dt>
+                  <dd className="text-[var(--muted)]">
+                    {t("documents.docVersion", { n: doc.documentVersionNumber ?? 1 })}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">{t("documents.colAuthor")}</dt>
+                  <dd className="text-[var(--muted)]">{doc.createdByName ?? "—"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">{t("documents.colCreated")}</dt>
+                  <dd className="text-[var(--muted)]">
+                    <time dateTime={doc.createdAt} title={new Date(doc.createdAt).toLocaleString(loc)}>
+                      {formatRelative(doc.createdAt, loc)}
+                    </time>
+                  </dd>
+                </div>
+              </dl>
+              <div className="mt-3 border-t border-[var(--line)] pt-2">
+                <Link to={`/documents/${doc.id}`} className={pillClass}>
+                  <Eye className="h-3.5 w-3.5" aria-hidden />
+                  {t("common.open")}
+                </Link>
+              </div>
+            </CardListItem>
+          );
+        })}
+      </CardList>
+
+      <div className="hidden overflow-x-auto rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--surface)] md:block">
+        <table className="min-w-[56rem] w-full text-left text-sm xl:min-w-0">
           <thead className="border-b border-[var(--line)] text-[var(--muted)]">
             <tr>
               <th className="px-4 py-3 font-medium">{t("documents.colReference")}</th>
@@ -151,53 +224,76 @@ export function DocumentsPage() {
             </tr>
           </thead>
           <tbody>
-            {(docs.data?.items ?? []).map((doc) => (
-              <tr key={doc.id} className="border-b border-[var(--line)] last:border-0">
-                <td className="px-4 py-3 font-mono text-xs">{doc.reference}</td>
-                <td className="px-4 py-3">{doc.title}</td>
-                <td className="px-4 py-3">
-                  <span className="block">{doc.templateName}</span>
-                  <span className="text-xs text-[var(--muted)]">{doc.templateCode}</span>
-                </td>
-                <td className="px-4 py-3">
-                  {t("documents.docVersion", { n: doc.documentVersionNumber ?? 1 })}
-                </td>
-                <td className="px-4 py-3">
-                  {doc.status ? (
-                    <StatusBadge status={doc.status} label={documentStatusLabel(t, doc.status)} />
-                  ) : (
-                    "—"
+            {items.map((doc) => {
+              const failed = doc.status === "FAILED";
+              return (
+                <tr
+                  key={doc.id}
+                  className={cn(
+                    "border-b border-[var(--line)] last:border-0",
+                    failed && "bg-[var(--danger-soft)]/50",
                   )}
-                </td>
-                <td className="px-4 py-3">{doc.createdByName ?? "—"}</td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {new Date(doc.createdAt).toLocaleString(loc)}
-                </td>
-                <td className="px-4 py-3">
-                  <Link to={`/documents/${doc.id}`} className="text-[var(--brand)] underline">
-                    {t("common.open")}
-                  </Link>
-                </td>
-              </tr>
-            ))}
+                >
+                  <td className="px-4 py-3 font-mono text-xs text-[var(--brand)]">{doc.reference}</td>
+                  <td className="px-4 py-3 font-medium text-[var(--brand-ink)]">{doc.title}</td>
+                  <td className="px-4 py-3">
+                    <span className="block">{doc.templateName}</span>
+                    <span className="text-xs text-[var(--muted)]">{doc.templateCode}</span>
+                  </td>
+                  <td className="px-4 py-3 text-[var(--muted)]">
+                    {t("documents.docVersion", { n: doc.documentVersionNumber ?? 1 })}
+                  </td>
+                  <td className="px-4 py-3">
+                    {doc.status ? (
+                      <StatusBadge status={doc.status} label={documentStatusLabel(t, doc.status)} />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-[var(--muted)]">{doc.createdByName ?? "—"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
+                    <time dateTime={doc.createdAt} title={new Date(doc.createdAt).toLocaleString(loc)}>
+                      {formatRelative(doc.createdAt, loc)}
+                    </time>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link to={`/documents/${doc.id}`} className={pillClass}>
+                      <Eye className="h-3.5 w-3.5" aria-hidden />
+                      {t("common.open")}
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {!docs.isLoading && (docs.data?.items?.length ?? 0) === 0 ? (
+      {!docs.isLoading && items.length === 0 ? (
         <p className="mt-6 text-[var(--muted)]">{t("documents.empty")}</p>
+      ) : null}
+
+      {docs.data && items.length > 0 ? (
+        <p className="mt-3 text-sm text-[var(--muted)]">
+          {t("documents.countShown", { shown: items.length, total: totalElements })}
+          <span className="xl:hidden">
+            {" · "}
+            {t("documents.scrollHint")}
+          </span>
+        </p>
       ) : null}
 
       {docs.data && docs.data.totalPages > 1 ? (
         <div className="mt-4 flex items-center justify-between text-sm">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             disabled={page <= 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="rounded-xl border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
           >
             {t("common.previous")}
-          </button>
+          </Button>
           <span className="text-[var(--muted)]">
             {t("common.pageOf", {
               current: docs.data.page + 1,
@@ -205,14 +301,15 @@ export function DocumentsPage() {
               count: docs.data.totalElements,
             })}
           </span>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             disabled={page + 1 >= docs.data.totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-xl border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
           >
             {t("common.next")}
-          </button>
+          </Button>
         </div>
       ) : null}
     </AppShell>

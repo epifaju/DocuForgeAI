@@ -1,15 +1,47 @@
 @import "tailwindcss";
 
 :root {
+  /* Surfaces */
   --bg: #f3efe6;
   --bg-accent: #e7efea;
+  --surface: #fffdf8;
   --ink: #1c2420;
   --muted: #5c6b63;
   --line: #c9d2cb;
+
+  /* Brand */
   --brand: #1f6b4f;
   --brand-ink: #0f3d2e;
+  --brand-soft: #e6f2ec;
+
+  /* Semantic */
   --danger: #9b2c2c;
-  --surface: #fffdf8;
+  --danger-ink: #6e1a1a;
+  --danger-soft: #f5e6e6;
+  --warning: #8a6a1f;
+  --warning-soft: #f3edd8;
+  --info: #2a5a7a;
+  --info-soft: #e4eef4;
+  --neutral-soft: #eceae4;
+
+  /* Atmosphere (gradients) */
+  --wash-brand: #d9ebe1;
+  --wash-warm: #efe6d8;
+
+  /* Radius scale */
+  --radius-sm: 0.375rem; /* 6px — badges */
+  --radius-md: 0.5rem; /* 8px — chips */
+  --radius-lg: 0.75rem; /* 12px — controls */
+  --radius-xl: 1rem; /* 16px — cards */
+
+  /* Spacing scale (reference; prefer Tailwind spacing) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
 }
 
 * {
@@ -27,13 +59,12 @@ body {
   color: var(--ink);
   font-family: "Source Sans 3", system-ui, sans-serif;
   background:
-    radial-gradient(1200px 500px at 10% -10%, #d9ebe1 0%, transparent 55%),
-    radial-gradient(900px 420px at 100% 0%, #efe6d4 0%, transparent 50%),
+    radial-gradient(1200px 500px at 10% -10%, var(--wash-brand) 0%, transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, var(--wash-warm) 0%, transparent 50%),
     var(--bg);
 }
 
-h1,
-h2,
+/* Fraunces reserved for brand (.brand) and primary dashboard KPI */
 .brand {
   font-family: "Fraunces", Georgia, serif;
 }
@@ -88,8 +119,8 @@ h2,
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(520px 220px at 8% 0%, rgb(31 107 79 / 0.08) 0%, transparent 70%),
-    linear-gradient(180deg, rgb(231 239 234 / 0.45) 0%, transparent 55%);
+    radial-gradient(520px 220px at 8% 0%, color-mix(in srgb, var(--brand) 12%, transparent) 0%, transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-accent) 55%, transparent) 0%, transparent 55%);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -5,6 +5,9 @@ import { login } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { isBlank, isValidEmail } from "@/lib/formValidation";
 
 export function LoginPage() {
@@ -49,7 +52,7 @@ export function LoginPage() {
           aria-hidden
           style={{
             background:
-              "radial-gradient(900px 480px at 15% 10%, #c5ddd1 0%, transparent 55%), radial-gradient(700px 400px at 90% 80%, #e4d7c0 0%, transparent 50%), linear-gradient(160deg, #eef4ef 0%, #f3efe6 55%, #e8e0d2 100%)",
+              "radial-gradient(900px 480px at 15% 10%, var(--wash-brand) 0%, transparent 55%), radial-gradient(700px 400px at 90% 80%, var(--wash-warm) 0%, transparent 50%), linear-gradient(160deg, var(--bg-accent) 0%, var(--bg) 55%, var(--wash-warm) 100%)",
           }}
         />
         <div className="flex items-start justify-between gap-4">
@@ -67,60 +70,41 @@ export function LoginPage() {
 
       <main className="flex items-center justify-center bg-[var(--surface)] px-6 py-12 lg:px-10">
         <div className="w-full max-w-md">
-          <h2 className="text-xl text-[var(--brand-ink)]">{t("login.title")}</h2>
+          <h2 className="text-xl font-semibold text-[var(--brand-ink)]">{t("login.title")}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">{t("login.hint")}</p>
 
           <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
-            <label className="block text-sm">
-              {t("login.company")}
-              <input
-                className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 outline-none focus:border-[var(--brand)]"
+            <Field label={t("login.company")} error={fieldErrors.company}>
+              <Input
                 value={companyIdentifier}
                 onChange={(e) => setCompany(e.target.value)}
                 autoComplete="organization"
-                aria-invalid={!!fieldErrors.company}
+                invalid={!!fieldErrors.company}
               />
-              {fieldErrors.company ? (
-                <p className="mt-1 text-sm text-[var(--danger)]">{fieldErrors.company}</p>
-              ) : null}
-            </label>
-            <label className="block text-sm">
-              {t("login.email")}
-              <input
+            </Field>
+            <Field label={t("login.email")} error={fieldErrors.email}>
+              <Input
                 type="email"
-                className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 outline-none focus:border-[var(--brand)]"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="username"
-                aria-invalid={!!fieldErrors.email}
+                invalid={!!fieldErrors.email}
               />
-              {fieldErrors.email ? (
-                <p className="mt-1 text-sm text-[var(--danger)]">{fieldErrors.email}</p>
-              ) : null}
-            </label>
-            <label className="block text-sm">
-              {t("login.password")}
-              <input
+            </Field>
+            <Field label={t("login.password")} error={fieldErrors.password}>
+              <Input
                 type="password"
-                className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 outline-none focus:border-[var(--brand)]"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 placeholder={t("login.passwordPlaceholder")}
-                aria-invalid={!!fieldErrors.password}
+                invalid={!!fieldErrors.password}
               />
-              {fieldErrors.password ? (
-                <p className="mt-1 text-sm text-[var(--danger)]">{fieldErrors.password}</p>
-              ) : null}
-            </label>
+            </Field>
             {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-[var(--brand)] px-4 py-2.5 font-medium text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-60"
-            >
+            <Button type="submit" disabled={loading} className="w-full" size="lg">
               {loading ? t("login.submitting") : t("login.submit")}
-            </button>
+            </Button>
             <p className="text-center text-sm">
               <Link to="/forgot-password" className="text-[var(--brand)] underline">
                 {t("auth.forgotLink")}

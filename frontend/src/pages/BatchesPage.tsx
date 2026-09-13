@@ -1,14 +1,100 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { createBatch, listBatches } from "@/api/batches";
+import {
+  type BatchJob,
+  createBatch,
+  downloadBatchErrors,
+  listBatches,
+} from "@/api/batches";
 import { listTemplates } from "@/api/forms";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { CardList, CardListItem } from "@/components/CardList";
 import { CreatePanel } from "@/components/CreatePanel";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Select } from "@/components/ui/Select";
 import { dateLocale } from "@/i18n";
+import { cn } from "@/lib/cn";
+import { formatRelative } from "@/lib/formatRelative";
+
+const pillClass =
+  "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--brand-ink)] transition-colors hover:border-[var(--brand)]/40 hover:bg-[var(--brand-soft)]";
+
+const pillDangerClass =
+  "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-1.5 text-xs font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50";
+
+function truncateId(id: string) {
+  return id.length > 8 ? `${id.slice(0, 8)}…` : id;
+}
+
+function hasErrorReport(job: BatchJob) {
+  return (
+    job.errorsReady &&
+    (job.failedItems > 0 || job.status === "FAILED" || job.status === "PARTIALLY_FAILED")
+  );
+}
+
+function BatchProgress({ job }: { job: BatchJob }) {
+  const { t } = useTranslation();
+  const total = Math.max(job.totalItems, 1);
+  const ratio = Math.min(1, Math.max(0, job.processedItems / total));
+  const failed =
+    job.failedItems > 0 || job.status === "FAILED" || job.status === "PARTIALLY_FAILED";
+  const barColor = failed ? "bg-[var(--danger)]" : "bg-[var(--brand)]";
+  // Failed with 0 success: show empty track (mock). Otherwise fill by processed ratio.
+  const widthPct =
+    failed && job.successfulItems === 0 ? 0 : Math.round(ratio * 100);
+
+  return (
+    <div className="min-w-[9rem] max-w-[14rem]">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--line)]/70">
+        <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${widthPct}%` }} />
+      </div>
+      <p className={cn("mt-1.5 text-xs", failed ? "text-[var(--danger)]" : "text-[var(--muted)]")}>
+        {t("batches.progressOk", { ok: job.successfulItems, total: job.totalItems })}
+        {job.failedItems > 0 ? t("batches.progressErr", { n: job.failedItems }) : null}
+      </p>
+    </div>
+  );
+}
+
+function BatchActions({
+  job,
+  token,
+  detailLabel,
+  errorsLabel,
+}: {
+  job: BatchJob;
+  token: string;
+  detailLabel: string;
+  errorsLabel: string;
+}) {
+  const showErrors = hasErrorReport(job);
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Link to={`/batches/${job.id}`} className={pillClass}>
+        <FileText className="h-3.5 w-3.5" aria-hidden />
+        {detailLabel}
+      </Link>
+      {showErrors ? (
+        <button
+          type="button"
+          className={pillDangerClass}
+          onClick={() => void downloadBatchErrors(token, job.id)}
+        >
+          <Download className="h-3.5 w-3.5" aria-hidden />
+          {errorsLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 export function BatchesPage() {
   const { t, i18n } = useTranslation();
@@ -50,6 +136,7 @@ export function BatchesPage() {
   });
 
   const items = batches.data?.items ?? [];
+  const totalElements = batches.data?.totalElements ?? items.length;
 
   return (
     <AppShell
@@ -57,13 +144,10 @@ export function BatchesPage() {
       description={t("batches.description")}
       width="wide"
       actions={
-        <button
-          type="button"
-          onClick={() => setShowCreate((v) => !v)}
-          className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white"
-        >
+        <Button type="button" onClick={() => setShowCreate((v) => !v)}>
+          <FileSpreadsheet className="h-4 w-4" aria-hidden />
           {showCreate ? t("batches.hide") : t("batches.new")}
-        </button>
+        </Button>
       }
     >
       <CreatePanel
@@ -85,13 +169,11 @@ export function BatchesPage() {
             upload.mutate();
           }}
         >
-          <label className="block text-sm">
-            {t("batches.template")}
-            <select
-              className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
+          <Field label={t("batches.template")} error={fieldErrors.templateId}>
+            <Select
               value={templateId}
               onChange={(e) => setTemplateId(e.target.value)}
-              aria-invalid={!!fieldErrors.templateId}
+              invalid={!!fieldErrors.templateId}
             >
               <option value="">{t("batches.choose")}</option>
               {(templates.data?.items ?? [])
@@ -101,34 +183,21 @@ export function BatchesPage() {
                     {tpl.name} ({tpl.code})
                   </option>
                 ))}
-            </select>
-            {fieldErrors.templateId ? (
-              <p className="mt-1 text-sm text-[var(--danger)]">{fieldErrors.templateId}</p>
-            ) : null}
-          </label>
-          <label className="block text-sm">
-            {t("batches.csvFile")}
+            </Select>
+          </Field>
+          <Field label={t("batches.csvFile")} error={fieldErrors.file}>
             <input
               type="file"
               accept=".csv,text/csv"
-              className="mt-1 w-full text-sm"
+              className="block w-full text-sm"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               aria-invalid={!!fieldErrors.file}
             />
-            {fieldErrors.file ? (
-              <p className="mt-1 text-sm text-[var(--danger)]">{fieldErrors.file}</p>
-            ) : null}
-          </label>
-          <p className="text-xs text-[var(--muted)]">
-            {t("batches.csvHint")}
-          </p>
-          <button
-            type="submit"
-            disabled={upload.isPending}
-            className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
+          </Field>
+          <p className="text-xs text-[var(--muted)]">{t("batches.csvHint")}</p>
+          <Button type="submit" disabled={upload.isPending}>
             {upload.isPending ? t("batches.sending") : t("batches.launch")}
-          </button>
+          </Button>
         </form>
       </CreatePanel>
 
@@ -137,7 +206,47 @@ export function BatchesPage() {
       {batches.isLoading ? <p>{t("common.loading")}</p> : null}
       {batches.isError ? <p className="text-[var(--danger)]">{t("batches.loadError")}</p> : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+      <CardList>
+        {items.map((job) => (
+          <CardListItem
+            key={job.id}
+            className={cn(
+              (job.status === "FAILED" || job.status === "PARTIALLY_FAILED") &&
+                "border-[var(--danger)]/25 bg-[var(--danger-soft)]/35",
+            )}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="font-mono text-xs text-[var(--muted)]" title={job.id}>
+                {truncateId(job.id)}
+              </p>
+              <StatusBadge
+                status={job.status}
+                label={t(`batches.statusLabel.${job.status}`, { defaultValue: job.status })}
+              />
+            </div>
+            <div className="mt-3">
+              <BatchProgress job={job} />
+            </div>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              <time dateTime={job.createdAt} title={new Date(job.createdAt).toLocaleString(loc)}>
+                {formatRelative(job.createdAt, loc)}
+              </time>
+            </p>
+            {token ? (
+              <div className="mt-3 border-t border-[var(--line)] pt-2">
+                <BatchActions
+                  job={job}
+                  token={token}
+                  detailLabel={t("batches.detail")}
+                  errorsLabel={t("batches.errorReport")}
+                />
+              </div>
+            ) : null}
+          </CardListItem>
+        ))}
+      </CardList>
+
+      <div className="hidden overflow-x-auto rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--surface)] md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-[var(--line)] text-[var(--muted)]">
             <tr>
@@ -150,9 +259,15 @@ export function BatchesPage() {
           </thead>
           <tbody>
             {items.map((job) => (
-              <tr key={job.id} className="border-b border-[var(--line)] last:border-0">
-                <td className="px-4 py-3 font-mono text-xs text-[var(--muted)]">
-                  {job.id.slice(0, 8)}…
+              <tr
+                key={job.id}
+                className={cn(
+                  "border-b border-[var(--line)] align-middle last:border-0",
+                  job.status === "FAILED" && "bg-[var(--danger-soft)]/40",
+                )}
+              >
+                <td className="px-4 py-3 font-mono text-xs text-[var(--muted)]" title={job.id}>
+                  {truncateId(job.id)}
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge
@@ -161,20 +276,22 @@ export function BatchesPage() {
                   />
                 </td>
                 <td className="px-4 py-3">
-                  {t("batches.ok", { ok: job.successfulItems, total: job.totalItems })}
-                  {job.failedItems > 0 ? (
-                    <span className="text-[var(--danger)]">
-                      {t("batches.err", { n: job.failedItems })}
-                    </span>
-                  ) : null}
+                  <BatchProgress job={job} />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
-                  {new Date(job.createdAt).toLocaleString(loc)}
+                  <time dateTime={job.createdAt} title={new Date(job.createdAt).toLocaleString(loc)}>
+                    {formatRelative(job.createdAt, loc)}
+                  </time>
                 </td>
                 <td className="px-4 py-3">
-                  <Link to={`/batches/${job.id}`} className="text-[var(--brand)] underline">
-                    {t("batches.detail")}
-                  </Link>
+                  {token ? (
+                    <BatchActions
+                      job={job}
+                      token={token}
+                      detailLabel={t("batches.detail")}
+                      errorsLabel={t("batches.errorReport")}
+                    />
+                  ) : null}
                 </td>
               </tr>
             ))}
@@ -184,6 +301,12 @@ export function BatchesPage() {
 
       {!batches.isLoading && items.length === 0 ? (
         <p className="mt-6 text-[var(--muted)]">{t("batches.empty")}</p>
+      ) : null}
+
+      {!batches.isLoading && items.length > 0 ? (
+        <p className="mt-3 text-sm text-[var(--muted)]">
+          {t("batches.countShown", { shown: items.length, total: totalElements })}
+        </p>
       ) : null}
     </AppShell>
   );

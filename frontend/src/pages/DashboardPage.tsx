@@ -1,15 +1,21 @@
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { fetchDashboard } from "@/api/dashboard";
 import { useAuth } from "@/auth/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { FailuresAlertBanner } from "@/components/FailuresAlertBanner";
+import { QuickActionsCard } from "@/components/QuickActionsCard";
 import { StatusBadge } from "@/components/StatusBadge";
+import { buttonVariants } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { dateLocale } from "@/i18n";
+import { cn } from "@/lib/cn";
 
 export function DashboardPage() {
-  const { token, hasRole } = useAuth();
+  const { token, hasRole, user } = useAuth();
   const { t, i18n } = useTranslation();
   const canViewAudit = hasRole("ADMIN", "EDITOR");
   const dash = useQuery({
@@ -23,135 +29,85 @@ export function DashboardPage() {
   const loc = dateLocale(i18n.language);
   const docs = dash.data?.recentDocuments ?? [];
   const activity = dash.data?.recentActivity ?? [];
-  const hasFailures = (kpis?.failedGenerations ?? 0) > 0;
-  const hasActiveBatches = (kpis?.batchJobsActive ?? 0) > 0;
+  const greetingName =
+    user?.firstName?.trim() ||
+    user?.lastName?.trim() ||
+    user?.email?.split("@")[0] ||
+    t("dashboard.greetingFallback");
 
   return (
     <AppShell
-      title={t("dashboard.title")}
-      description={t("dashboard.description")}
+      title={t("dashboard.docsToday")}
+      titleClassName="brand font-normal"
+      eyebrow={t("dashboard.greeting", { name: greetingName })}
       width="wide"
       actions={
-        <>
-          <Link
-            to="/templates"
-            className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2 text-sm text-[var(--brand-ink)] transition-colors hover:border-[var(--brand)] hover:bg-[var(--bg-accent)]"
-          >
-            {t("dashboard.actionTemplates")}
-          </Link>
-          <Link
-            to="/documents"
-            className="rounded-xl bg-[var(--brand)] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--brand-ink)]"
-          >
-            {t("dashboard.actionDocuments")}
-          </Link>
-        </>
+        <Link
+          to="/templates"
+          className={cn(buttonVariants({ variant: "primary", size: "md" }), "min-h-10")}
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+          {t("dashboard.newDocument")}
+        </Link>
       }
     >
       {dash.isLoading ? <DashboardSkeleton /> : null}
       {dash.isError ? <p className="text-[var(--danger)]">{t("dashboard.unavailable")}</p> : null}
 
       {kpis ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <section
-            className="dash-rise overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]"
+            className="dash-rise grid gap-4 md:grid-cols-[1.35fr_1fr_1fr]"
             style={{ animationDelay: "40ms" }}
           >
-            <div className="dash-overview-wash relative grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)]">
-              <div className="relative border-b border-[var(--line)] p-6 sm:p-8 lg:border-b-0 lg:border-r">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      hasFailures ? "bg-[var(--danger)]" : "bg-[var(--brand)]"
-                    }`}
-                    aria-hidden
-                  />
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                    {t("dashboard.docsToday")}
-                  </p>
-                </div>
+            <Card padding="lg">
+              <p className="text-sm text-[var(--muted)]">{t("dashboard.docsTodayHint")}</p>
+              <div className="mt-3 flex items-end justify-between gap-4">
                 <p
-                  className={`dash-count brand mt-3 text-6xl leading-none tracking-tight sm:text-7xl ${
+                  className={cn(
+                    "dash-count brand text-5xl leading-none tracking-tight sm:text-6xl",
                     kpis.documentsGeneratedToday > 0
                       ? "text-[var(--brand-ink)]"
-                      : "text-[var(--muted)]"
-                  }`}
+                      : "text-[var(--muted)]",
+                  )}
                   style={{ animationDelay: "100ms" }}
                 >
                   {kpis.documentsGeneratedToday}
                 </p>
-                <p className="mt-3 max-w-xs text-sm text-[var(--muted)]">
-                  {t("dashboard.docsTodayHint")}
-                </p>
-                <Link
-                  to="/documents"
-                  className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-[var(--brand)] transition-colors hover:text-[var(--brand-ink)]"
-                >
-                  {t("dashboard.openDocuments")}
-                  <span
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[var(--bg-accent)] text-xs"
-                    aria-hidden
-                  >
-                    →
-                  </span>
-                </Link>
+                {/*
+                  Sparkline 7 jours non affichée : l'API /api/v1/dashboard ne fournit
+                  que des totaux (today / month), pas une série quotidienne.
+                */}
               </div>
+              <Link
+                to="/documents"
+                className="mt-4 inline-flex text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-ink)]"
+              >
+                {t("dashboard.openDocuments")}
+              </Link>
+            </Card>
 
-              <div className="grid sm:grid-cols-3">
-                <KpiCell
-                  label={t("dashboard.docsMonth")}
-                  value={kpis.documentsGeneratedThisMonth}
-                  hint={t("dashboard.docsMonthHint")}
-                  to="/documents"
-                  delay="140ms"
-                />
-                <KpiCell
-                  label={t("dashboard.activeTemplates")}
-                  value={kpis.activeTemplates}
-                  hint={t("dashboard.activeTemplatesHint")}
-                  to="/templates?status=ACTIVE"
-                  delay="200ms"
-                  className="sm:border-l"
-                />
-                <KpiCell
-                  label={t("dashboard.failures")}
-                  value={kpis.failedGenerations}
-                  hint={t("dashboard.failuresHint")}
-                  to="/documents?status=FAILED"
-                  emphasis={hasFailures}
-                  delay="260ms"
-                  className="border-t sm:border-l sm:border-t-0"
-                />
-              </div>
-            </div>
+            <KpiCard
+              label={t("dashboard.docsMonth")}
+              value={kpis.documentsGeneratedThisMonth}
+              hint={t("dashboard.docsMonthHint")}
+              to="/documents"
+              delay="140ms"
+            />
+            <KpiCard
+              label={t("dashboard.activeTemplates")}
+              value={kpis.activeTemplates}
+              hint={t("dashboard.activeTemplatesHint")}
+              to="/templates?status=ACTIVE"
+              delay="200ms"
+            />
           </section>
 
-          <section
-            className="dash-rise flex flex-wrap items-center gap-x-1 gap-y-2"
-            style={{ animationDelay: "140ms" }}
-          >
-            <OpsChip
-              label={t("dashboard.batchesTotal")}
-              value={kpis.batchJobsTotal}
-              to="/batches"
-            />
-            <OpsChip
-              label={t("dashboard.batchesActive")}
-              value={kpis.batchJobsActive}
-              to="/batches"
-              live={hasActiveBatches}
-            />
-            <OpsChip label={t("dashboard.aiToday")} value={kpis.aiRequestsToday} />
-            <OpsChip label={t("dashboard.aiMonth")} value={kpis.aiRequestsThisMonth} />
-            <span className="ml-auto flex items-center gap-2 text-xs text-[var(--muted)]">
-              <span className="hidden h-1 w-1 rounded-full bg-[var(--brand)] sm:inline-block" aria-hidden />
-              {t("dashboard.timezone", { tz: dash.data?.timezone })}
-            </span>
-          </section>
+          <FailuresAlertBanner count={kpis.failedGenerations} className="dash-rise" />
 
           <section
-            className="dash-rise grid gap-5 lg:grid-cols-2"
-            style={{ animationDelay: "200ms" }}
+            className="dash-rise grid gap-5 md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]"
+            style={{ animationDelay: "180ms" }}
           >
             <FeedPanel
               title={t("dashboard.recentDocs")}
@@ -162,7 +118,7 @@ export function DashboardPage() {
                   <p className="text-sm text-[var(--muted)]">{t("dashboard.noDocs")}</p>
                   <Link
                     to="/templates"
-                    className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm font-medium text-[var(--brand-ink)] transition-colors hover:border-[var(--brand)] hover:bg-[var(--bg-accent)]"
+                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
                   >
                     {t("dashboard.emptyDocsCta")}
                   </Link>
@@ -171,77 +127,61 @@ export function DashboardPage() {
               isEmpty={docs.length === 0}
             >
               {docs.map((doc, i) => (
-                <li key={doc.id} className="dash-rise" style={{ animationDelay: `${240 + i * 40}ms` }}>
+                <li key={doc.id} className="dash-rise" style={{ animationDelay: `${220 + i * 40}ms` }}>
                   <Link
                     to={`/documents/${doc.id}`}
                     className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--bg-accent)]/55 sm:px-5"
                   >
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className="font-mono text-xs font-medium text-[var(--brand)] transition-colors group-hover:text-[var(--brand-ink)]">
-                          {doc.reference}
-                        </span>
-                        <span className="truncate text-sm text-[var(--brand-ink)]">{doc.title}</span>
-                      </div>
-                      {doc.templateName ? (
-                        <p className="mt-0.5 truncate text-xs text-[var(--muted)]">{doc.templateName}</p>
-                      ) : null}
+                      <p className="truncate text-sm font-medium text-[var(--brand-ink)]">
+                        {doc.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
+                        <span className="font-mono">{doc.reference}</span>
+                        {" · "}
+                        <time dateTime={doc.createdAt} title={new Date(doc.createdAt).toLocaleString(loc)}>
+                          {formatRelative(doc.createdAt, loc)}
+                        </time>
+                      </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <StatusBadge
-                        status={doc.status}
-                        label={t(`documents.statusLabel.${doc.status}`, { defaultValue: doc.status })}
-                      />
-                      <time
-                        className="text-[11px] tabular-nums text-[var(--muted)]"
-                        dateTime={doc.createdAt}
-                        title={new Date(doc.createdAt).toLocaleString(loc)}
-                      >
-                        {formatRelative(doc.createdAt, loc)}
-                      </time>
-                    </div>
+                    <StatusBadge
+                      status={doc.status}
+                      label={t(`documents.statusLabel.${doc.status}`, { defaultValue: doc.status })}
+                    />
                   </Link>
                 </li>
               ))}
             </FeedPanel>
 
-            <FeedPanel
-              title={t("dashboard.recentActivity")}
-              linkTo={canViewAudit ? "/audit" : undefined}
-              linkLabel={canViewAudit ? t("dashboard.auditLink") : undefined}
-              empty={<p className="py-2 text-sm text-[var(--muted)]">{t("dashboard.noActivity")}</p>}
-              isEmpty={activity.length === 0}
-            >
-              {activity.map((row, i) => (
-                <li
-                  key={row.id}
-                  className="dash-rise grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3.5 sm:px-5"
-                  style={{ animationDelay: `${260 + i * 40}ms` }}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[var(--brand-ink)]">
-                      {t(`audit.actionLabel.${row.action}`, { defaultValue: row.action })}
+            <div className="flex flex-col gap-5">
+              <QuickActionsCard />
+              <FeedPanel
+                title={t("dashboard.recentActivity")}
+                linkTo={canViewAudit ? "/audit" : undefined}
+                linkLabel={canViewAudit ? t("dashboard.auditLink") : undefined}
+                empty={<p className="py-2 text-sm text-[var(--muted)]">{t("dashboard.noActivity")}</p>}
+                isEmpty={activity.length === 0}
+              >
+                {activity.map((row, i) => (
+                  <li
+                    key={row.id}
+                    className="dash-rise px-4 py-3.5 sm:px-5"
+                    style={{ animationDelay: `${260 + i * 40}ms` }}
+                  >
+                    <p className="text-sm text-[var(--muted)]">
+                      <span className="font-medium text-[var(--brand-ink)]">
+                        {t(`audit.actionLabel.${row.action}`, { defaultValue: row.action })}
+                      </span>
+                      {row.userEmail ? <> {row.userEmail}</> : null}
+                      {" — "}
+                      <time dateTime={row.createdAt} title={new Date(row.createdAt).toLocaleString(loc)}>
+                        {formatRelative(row.createdAt, loc)}
+                      </time>
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
-                      {row.userEmail ?? "—"}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <StatusBadge
-                      status={row.status}
-                      label={t(`audit.statusLabel.${row.status}`, { defaultValue: row.status })}
-                    />
-                    <time
-                      className="text-[11px] tabular-nums text-[var(--muted)]"
-                      dateTime={row.createdAt}
-                      title={new Date(row.createdAt).toLocaleString(loc)}
-                    >
-                      {formatRelative(row.createdAt, loc)}
-                    </time>
-                  </div>
-                </li>
-              ))}
-            </FeedPanel>
+                  </li>
+                ))}
+              </FeedPanel>
+            </div>
           </section>
         </div>
       ) : null}
@@ -249,32 +189,26 @@ export function DashboardPage() {
   );
 }
 
-function KpiCell({
+function KpiCard({
   label,
   value,
   hint,
   to,
-  emphasis,
   delay,
-  className = "",
+  className,
 }: {
   label: string;
   value: number;
   hint: string;
   to?: string;
-  emphasis?: boolean;
   delay?: string;
   className?: string;
 }) {
   const body = (
     <>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-        {label}
-      </p>
+      <p className="text-sm text-[var(--muted)]">{label}</p>
       <p
-        className={`dash-count mt-3 text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl ${
-          emphasis ? "text-[var(--danger)]" : "text-[var(--brand-ink)]"
-        }`}
+        className="dash-count mt-3 text-4xl font-semibold tabular-nums tracking-tight text-[var(--brand-ink)] sm:text-5xl"
         style={{ animationDelay: delay }}
       >
         {value}
@@ -283,51 +217,26 @@ function KpiCell({
     </>
   );
 
-  const shell =
-    `block h-full border-[var(--line)] p-5 sm:p-6 outline-none transition-colors hover:bg-[var(--bg-accent)]/45 focus-visible:bg-[var(--bg-accent)]/45 ${className}`;
-
   if (to) {
     return (
-      <Link to={to} className={shell}>
-        {body}
-      </Link>
+      <Card
+        padding="lg"
+        className={cn(
+          "transition-colors hover:bg-[var(--bg-accent)]/40 focus-within:bg-[var(--bg-accent)]/40",
+          className,
+        )}
+      >
+        <Link to={to} className="block h-full outline-none">
+          {body}
+        </Link>
+      </Card>
     );
   }
-  return <div className={shell}>{body}</div>;
-}
-
-function OpsChip({
-  label,
-  value,
-  to,
-  live,
-}: {
-  label: string;
-  value: number;
-  to?: string;
-  live?: boolean;
-}) {
-  const content = (
-    <span className="inline-flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-sm transition-colors">
-      {live ? (
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--brand)] opacity-40" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--brand)]" />
-        </span>
-      ) : null}
-      <span className="text-[var(--muted)]">{label}</span>
-      <span className="font-semibold tabular-nums text-[var(--brand-ink)]">{value}</span>
-    </span>
+  return (
+    <Card padding="lg" className={className}>
+      {body}
+    </Card>
   );
-
-  if (to) {
-    return (
-      <Link to={to} className="hover:[&>span]:border-[var(--brand)]">
-        {content}
-      </Link>
-    );
-  }
-  return content;
 }
 
 function FeedPanel({
@@ -346,7 +255,7 @@ function FeedPanel({
   isEmpty: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+    <Card padding="none" className="overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
         <h2 className="text-[15px] font-semibold tracking-tight text-[var(--brand-ink)]">{title}</h2>
         {linkTo && linkLabel ? (
@@ -358,8 +267,12 @@ function FeedPanel({
           </Link>
         ) : null}
       </div>
-      {isEmpty ? <div className="px-4 py-8 sm:px-5">{empty}</div> : <ul className="divide-y divide-[var(--line)]/70">{children}</ul>}
-    </div>
+      {isEmpty ? (
+        <div className="px-4 py-8 sm:px-5">{empty}</div>
+      ) : (
+        <ul className="divide-y divide-[var(--line)]/70">{children}</ul>
+      )}
+    </Card>
   );
 }
 
@@ -377,42 +290,21 @@ function formatRelative(iso: string, locale: string) {
 
 function DashboardSkeleton() {
   return (
-    <div className="animate-pulse space-y-8" aria-hidden>
-      <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
-        <div className="grid lg:grid-cols-2">
-          <div className="border-b border-[var(--line)] p-8 lg:border-b-0 lg:border-r">
-            <div className="h-3 w-32 rounded bg-[var(--line)]" />
-            <div className="mt-4 h-16 w-24 rounded bg-[var(--line)]" />
-            <div className="mt-4 h-3 w-40 rounded bg-[var(--line)]" />
-          </div>
-          <div className="grid sm:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="border-[var(--line)] p-6 sm:border-l">
-                <div className="h-2.5 w-16 rounded bg-[var(--line)]" />
-                <div className="mt-4 h-9 w-12 rounded bg-[var(--line)]" />
-              </div>
-            ))}
-          </div>
+    <div className="animate-pulse space-y-6" aria-hidden>
+      <div className="grid gap-4 md:grid-cols-[1.35fr_1fr_1fr]">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-36 rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--surface)]"
+          />
+        ))}
+      </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className="h-64 rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--surface)]" />
+        <div className="space-y-5">
+          <div className="h-36 rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--surface)]" />
+          <div className="h-40 rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--surface)]" />
         </div>
-      </div>
-      <div className="flex gap-2">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-8 w-28 rounded-lg bg-[var(--line)]/60" />
-        ))}
-      </div>
-      <div className="grid gap-5 lg:grid-cols-2">
-        {[0, 1].map((col) => (
-          <div key={col} className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
-            <div className="border-b border-[var(--line)] px-5 py-4">
-              <div className="h-3.5 w-36 rounded bg-[var(--line)]" />
-            </div>
-            {[0, 1, 2, 3].map((row) => (
-              <div key={row} className="border-b border-[var(--line)]/50 px-5 py-4 last:border-0">
-                <div className="h-3 w-3/4 rounded bg-[var(--line)]/70" />
-              </div>
-            ))}
-          </div>
-        ))}
       </div>
     </div>
   );

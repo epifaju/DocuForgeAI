@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth/AuthContext";
 import { AuditPage } from "@/pages/AuditPage";
 import { BatchDetailPage } from "@/pages/BatchDetailPage";
@@ -21,9 +22,34 @@ import { TemplatesPage } from "@/pages/TemplatesPage";
 import { UsersPage } from "@/pages/UsersPage";
 import { UserDetailPage } from "@/pages/UserDetailPage";
 
+function AuthSkeleton() {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="flex min-h-screen flex-col"
+      aria-busy="true"
+      aria-live="polite"
+      role="status"
+    >
+      <span className="sr-only">{t("common.authLoading")}</span>
+      <div className="border-b border-[var(--line)] bg-[var(--surface)]/90 px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center gap-4">
+          <div className="h-7 w-36 animate-pulse rounded-md bg-[var(--brand-soft)]" />
+          <div className="hidden h-4 w-24 animate-pulse rounded bg-[var(--neutral-soft)] sm:block" />
+          <div className="hidden h-4 w-24 animate-pulse rounded bg-[var(--neutral-soft)] sm:block" />
+        </div>
+      </div>
+      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        <div className="mb-8 h-9 w-48 animate-pulse rounded-md bg-[var(--brand-soft)]" />
+        <div className="h-40 animate-pulse rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--surface)]" />
+      </div>
+    </div>
+  );
+}
+
 function Protected({ children }: { children: ReactNode }) {
   const { token, ready } = useAuth();
-  if (!ready) return null;
+  if (!ready) return <AuthSkeleton />;
   if (!token) return <Navigate to="/login" replace />;
   return children;
 }
